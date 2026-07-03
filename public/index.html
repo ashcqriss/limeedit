@@ -21,6 +21,9 @@
     <nav id="menus"></nav>
     <div class="menu-spacer"></div>
     <div id="workspace-name" class="menu-workspace" title="Workspace root"></div>
+    <button id="account-btn" class="account-btn" title="Account">
+      <span id="account-avatar" class="account-avatar">?</span>
+    </button>
   </header>
 
   <div id="main">
@@ -85,6 +88,8 @@
     <button id="status-eol" class="status-item" title="Toggle line endings">LF (Unix)</button>
     <span class="status-item static">UTF-8</span>
     <button id="status-tab" class="status-item" title="Cycle tab width">Tab: 4</button>
+    <button id="status-raw" class="status-item hidden" title="Raw mode is on — click to turn off">RAW</button>
+    <span id="status-ext-items" class="status-ext"></span>
     <span class="status-spacer"></span>
     <span id="status-message" class="status-message"></span>
     <button id="status-position" class="status-item" title="Go to line…">Ln 1, Col 1</button>
@@ -108,6 +113,37 @@
         <button id="dialog-ok" class="btn primary">OK</button>
       </div>
     </div>
+  </div>
+
+  <!-- Extensions manager -->
+  <div id="extensions" class="overlay hidden">
+    <div class="big-panel">
+      <div class="big-panel-head">
+        <h3>🧩 Extensions</h3>
+        <span class="big-panel-sub">Local extension host — enable, disable, or install from source</span>
+        <span class="nav-spacer"></span>
+        <button id="ext-install" class="btn">Install from Source…</button>
+        <button id="ext-close" class="btn subtle" title="Close (Esc)">✕</button>
+      </div>
+      <div id="ext-list" class="ext-list"></div>
+    </div>
+  </div>
+
+  <!-- Account panel -->
+  <div id="account" class="overlay hidden">
+    <div class="dialog-panel account-panel">
+      <div id="account-body"></div>
+    </div>
+  </div>
+
+  <!-- Extension preview panel (e.g. Markdown preview) -->
+  <div id="ext-panel" class="ext-panel hidden">
+    <div class="ext-panel-head">
+      <span id="ext-panel-title">Preview</span>
+      <span class="nav-spacer"></span>
+      <button id="ext-panel-close" class="btn subtle" title="Close">✕</button>
+    </div>
+    <div id="ext-panel-body" class="ext-panel-body"></div>
   </div>
 
   <!-- Monaco: the editor core of microsoft/vscode, via its AMD loader -->

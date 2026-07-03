@@ -529,6 +529,179 @@ html[data-theme='dark'] .nav-btn.on { color: var(--accent); }
 #function-menu .menu-item { padding-left: 14px; }
 #function-menu .fn-kind { color: var(--chrome-text-dim); font-size: 10px; width: 52px; flex: none; }
 
+/* ---------------------------------------------------------------- account button */
+.account-btn {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--input-border);
+  color: var(--chrome-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.account-avatar.big { width: 40px; height: 40px; font-size: 20px; }
+
+/* status-bar extension items */
+.status-ext { display: flex; align-items: stretch; }
+.status-ext-item { color: var(--chrome-text); }
+#status-raw {
+  color: #fff;
+  background: #c0392b;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ---------------------------------------------------------------- extensions overlay */
+.big-panel {
+  margin-top: 60px;
+  width: 720px;
+  max-width: 92vw;
+  max-height: 76vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--menu-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.big-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+.big-panel-head h3 { margin: 0; font-size: 15px; }
+.big-panel-sub { color: var(--chrome-text-dim); font-size: 11px; }
+.big-panel-head .nav-spacer { flex: 1; }
+
+.ext-list { overflow: auto; padding: 6px 0; }
+.ext-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+.ext-card:last-child { border-bottom: 0; }
+.ext-main { flex: 1; min-width: 0; }
+.ext-title { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.ext-desc { color: var(--chrome-text); font-size: 12px; margin-top: 2px; }
+.ext-meta { color: var(--chrome-text-dim); font-size: 11px; margin-top: 3px; }
+.ext-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--accent);
+  color: #10240a;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-weight: 700;
+}
+.ext-toggle { flex: none; min-width: 84px; text-align: center; }
+
+/* ---------------------------------------------------------------- account panel */
+.account-panel { margin-top: 100px; width: 380px; }
+.account-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.account-name { font-size: 15px; font-weight: 700; }
+.account-email { font-size: 12px; }
+.account-note { font-size: 12px; line-height: 1.5; margin: 6px 0 14px; }
+
+/* ---------------------------------------------------------------- extension preview panel */
+.ext-panel {
+  position: fixed;
+  top: 28px;
+  bottom: 22px;
+  right: 0;
+  width: 42%;
+  min-width: 320px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  background: var(--editor-bg);
+  border-left: 1px solid var(--chrome-border);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.14);
+  z-index: 900;
+}
+.ext-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--chrome-bg-grad);
+  border-bottom: 1px solid var(--chrome-border);
+  font-weight: 700;
+  font-size: 12px;
+  flex: none;
+}
+.ext-panel-head .nav-spacer { flex: 1; }
+.ext-panel-body {
+  overflow: auto;
+  padding: 16px 22px;
+  color: var(--chrome-text);
+  line-height: 1.6;
+}
+.ext-panel-body h1, .ext-panel-body h2, .ext-panel-body h3 { line-height: 1.3; }
+.ext-panel-body h1 { border-bottom: 1px solid var(--chrome-border); padding-bottom: 4px; }
+.ext-panel-body pre {
+  background: var(--panel-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+.ext-panel-body code {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--panel-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.ext-panel-body pre code { background: none; padding: 0; }
+.ext-panel-body blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--chrome-border);
+  color: var(--chrome-text-dim);
+}
+.ext-panel-body a { color: var(--accent-dark); }
+html[data-theme='dark'] .ext-panel-body a { color: var(--accent); }
+
+/* The generic dialog is the topmost modal — it can open over the Extensions
+ * overlay (e.g. Install from Source), so it must stack above the others. */
+#dialog { z-index: 2600; }
+
+/* dialog additions */
+.dialog-textarea {
+  width: 100%;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--chrome-text);
+  resize: vertical;
+}
+.dialog-note {
+  font-size: 12px;
+  color: var(--chrome-text-dim);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
 /* ---------------------------------------------------------------- animations
  * VS Code's "smooth" feel: eased hover/selection transitions everywhere,
  * plus entry animations that replay whenever an overlay, panel, or menu
@@ -567,9 +740,15 @@ html:not(.no-motion) .overlay:not(.hidden) {
   animation: le-fade 120ms ease both;
 }
 
-/* Quick-open and dialog panels rise + fade in, like vscode's quick input */
-html:not(.no-motion) .quickopen-panel {
+/* Quick-open, dialog, and the Extensions panel rise + fade like vscode quick input */
+html:not(.no-motion) .quickopen-panel,
+html:not(.no-motion) .big-panel,
+html:not(.no-motion) .account-panel {
   animation: le-rise 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* The extension preview panel slides in from the right edge, vscode-style */
+html:not(.no-motion) .ext-panel:not(.hidden) {
+  animation: le-slide-left 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 html:not(.no-motion) .dialog-panel {
   animation: le-rise 170ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -607,6 +786,10 @@ html:not(.no-motion) .search-hit {
 @keyframes le-slide-up {
   from { opacity: 0.3; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes le-slide-left {
+  from { opacity: 0.4; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 /* Hard kill-switch: the View ▸ Smooth Animations toggle */

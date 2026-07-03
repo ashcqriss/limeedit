@@ -18,8 +18,12 @@ await fs.mkdir(path.join(workspace, 'src'));
 await fs.writeFile(path.join(workspace, 'hello.txt'), 'hello world\nsecond line\n');
 await fs.writeFile(path.join(workspace, 'src', 'main.js'), 'function greet() {\n  return "hello";\n}\n');
 
+// Keep account/settings data out of the repo during tests.
+const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'limeedit-data-'));
+
 const server = spawn(process.execPath, [path.join(here, '..', 'server.js'), workspace, '--port', String(PORT)], {
   stdio: ['ignore', 'pipe', 'inherit'],
+  env: { ...process.env, LIMEEDIT_DATA: dataDir },
 });
 
 try {
@@ -99,9 +103,60 @@ try {
   assert.equal(res.status, 200);
   res = await fetch(`${BASE}/vs/editor/editor.main.js`);
   assert.equal(res.status, 200);
+  // the extensions module is served to the browser
+  res = await fetch(`${BASE}/js/extensions.js`);
+  assert.equal(res.status, 200);
+
+  // account: starts empty
+  res = await fetch(`${BASE}/api/account`);
+  assert.deepEqual(await res.json(), { account: null });
+
+  // account: a name is required
+  res = await fetch(`${BASE}/api/account`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: '' }),
+  });
+  assert.equal(res.status, 400);
+
+  // account: invalid email is rejected
+  res = await fetch(`${BASE}/api/account`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Ada', email: 'not-an-email' }),
+  });
+  assert.equal(res.status, 400);
+
+  // account: sign in, then read it back
+  res = await fetch(`${BASE}/api/account`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Ada Lovelace', email: 'ada@example.com', settings: { theme: 'dark' } }),
+  });
+  assert.equal(res.status, 200);
+  data = await res.json();
+  assert.equal(data.account.name, 'Ada Lovelace');
+  assert.ok(data.account.color.startsWith('hsl('));
+  res = await fetch(`${BASE}/api/account`);
+  assert.equal((await res.json()).account.email, 'ada@example.com');
+
+  // account: settings sync updates the stored blob
+  res = await fetch(`${BASE}/api/account/settings`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme: 'light', tabWidth: 2 }),
+  });
+  assert.equal((await res.json()).account.settings.tabWidth, 2);
+
+  // account: sign out clears it
+  res = await fetch(`${BASE}/api/account`, { method: 'DELETE' });
+  assert.equal(res.status, 200);
+  res = await fetch(`${BASE}/api/account`);
+  assert.deepEqual(await res.json(), { account: null });
 
   console.log('✓ all smoke tests passed');
 } finally {
   server.kill();
   await fs.rm(workspace, { recursive: true, force: true });
+  await fs.rm(dataDir, { recursive: true, force: true });
 }

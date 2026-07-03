@@ -8,6 +8,7 @@
 
 import * as texttools from './texttools.js';
 import { scanFunctions } from './functionscanner.js';
+import { ExtensionHost, BUILTIN_EXTENSIONS, compileRawExtension } from './extensions.js';
 
 const monaco = await window.monacoReady;
 
@@ -58,7 +59,22 @@ const state = {
   showInvisibles: false,
   tabWidth: Number(localStorage.getItem('limeedit.tabWidth')) || 4,
   workspaceName: '',
+  account: null,
+  rawMode: false,
+  enabledExtensions: loadEnabledExtensions(),
+  rawExtensions: [], // compiled from pasted source, this session only
 };
+
+function loadEnabledExtensions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('limeedit.extensions'));
+    if (saved && typeof saved === 'object') return saved;
+  } catch {
+    /* fall through to defaults */
+  }
+  // Sensible defaults: the two ambient status items on, the rest off.
+  return { 'limeedit.word-count': true, 'limeedit.reading-time': true };
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -85,6 +101,7 @@ const editor = monaco.editor.create($('editor'), {
   cursorSmoothCaretAnimation: state.animations ? 'on' : 'off',
   cursorBlinking: state.animations ? 'smooth' : 'blink',
 });
+window.__limeeditEditor = editor; // referenced by extension teardown
 
 // ---------------------------------------------------------------- documents
 
@@ -123,6 +140,7 @@ function createDoc({ path = null, name = null, content = '' }) {
     renderOpenDocs();
     updateDirtyDot();
     scheduleFunctionScan();
+    if (doc.id === state.activeId) scheduleExtContentEmit(model);
   });
   state.docs.push(doc);
   return doc;
@@ -145,6 +163,8 @@ function activateDoc(doc) {
   updateNavbar();
   updateStatusBar();
   scheduleFunctionScan();
+  applyRawMode();
+  extHost.emitActiveDocument(doc ? doc.model : null);
 }
 
 async function openFile(relPath, { line = null, column = null } = {}) {
@@ -512,6 +532,425 @@ $('status-language').addEventListener('click', async () => {
   }
 });
 
+// ---------------------------------------------------------------- extension host
+
+// Status-bar items contributed by extensions live in #status-ext-items.
+function makeStatusItem({ id, text = '', tooltip = '', onClick, owner }) {
+  const el = document.createElement(onClick ? 'button' : 'span');
+  el.className = 'status-item status-ext-item' + (onClick ? '' : ' static');
+  el.dataset.owner = owner || '';
+  el.textContent = text;
+  if (tooltip) el.title = tooltip;
+  if (onClick) el.addEventListener('click', onClick);
+  if (!text) el.style.display = 'none';
+  $('status-ext-items').appendChild(el);
+  return {
+    update(newText, newTooltip) {
+      el.textContent = newText || '';
+      el.style.display = newText ? '' : 'none';
+      if (newTooltip !== undefined) el.title = newTooltip;
+    },
+    dispose() {
+      el.remove();
+    },
+  };
+}
+
+// Commands contributed by extensions: registered as Monaco actions (so they
+// appear in the F1 palette) and tracked for the Extensions view.
+const extensionCommands = [];
+function makeCommand({ id, title, run, owner }) {
+  const action = editor.addAction({
+    id: `limeedit.ext.${id}`,
+    label: title,
+    run: () => run(),
+  });
+  const record = { id, title, run, owner };
+  extensionCommands.push(record);
+  return {
+    dispose() {
+      action.dispose();
+      const i = extensionCommands.indexOf(record);
+      if (i >= 0) extensionCommands.splice(i, 1);
+    },
+  };
+}
+
+// A preview panel (used by e.g. the Markdown Preview extension).
+function showExtPanel({ title = 'Preview', html = '' }) {
+  $('ext-panel-title').textContent = title;
+  $('ext-panel-body').innerHTML = html;
+  $('ext-panel').classList.remove('hidden');
+  return {
+    update(newHtml) {
+      $('ext-panel-body').innerHTML = newHtml;
+    },
+    close() {
+      $('ext-panel').classList.add('hidden');
+    },
+  };
+}
+$('ext-panel-close').addEventListener('click', () => $('ext-panel').classList.add('hidden'));
+
+const extHost = new ExtensionHost({
+  monaco,
+  // The editor is a persistent singleton (it outlives any single model), so
+  // always hand it back; extensions detect "no document" via getModel() === null.
+  getEditor: () => editor,
+  addStatusItem: makeStatusItem,
+  registerCommand: makeCommand,
+  showPanel: showExtPanel,
+  showMessage: statusMessage,
+});
+
+let extContentTimer = null;
+function scheduleExtContentEmit(model) {
+  clearTimeout(extContentTimer);
+  extContentTimer = setTimeout(() => extHost.emitContentChange(model), 250);
+}
+
+function allExtensions() {
+  return [...BUILTIN_EXTENSIONS, ...state.rawExtensions];
+}
+
+function isExtensionEnabled(id) {
+  return !!state.enabledExtensions[id];
+}
+
+function setExtensionEnabled(ext, enabled) {
+  const wasEnabled = extHost.isActive(ext.id);
+  if (enabled && !wasEnabled) extHost.activate(ext);
+  else if (!enabled && wasEnabled) extHost.deactivate(ext);
+  state.enabledExtensions[ext.id] = enabled;
+  persistEnabledExtensions();
+}
+
+function persistEnabledExtensions() {
+  // Persist only built-ins; raw extensions are session-scoped by design.
+  const persistable = {};
+  for (const ext of BUILTIN_EXTENSIONS) {
+    if (state.enabledExtensions[ext.id]) persistable[ext.id] = true;
+  }
+  localStorage.setItem('limeedit.extensions', JSON.stringify(persistable));
+}
+
+function activateEnabledExtensions() {
+  for (const ext of allExtensions()) {
+    if (isExtensionEnabled(ext.id) && !extHost.isActive(ext.id)) extHost.activate(ext);
+  }
+}
+
+// ---- Extensions manager overlay ----
+
+function showExtensions() {
+  renderExtensionList();
+  $('extensions').classList.remove('hidden');
+}
+function hideExtensions() {
+  $('extensions').classList.add('hidden');
+  editor.focus();
+}
+
+function renderExtensionList() {
+  const list = $('ext-list');
+  list.textContent = '';
+  for (const ext of allExtensions()) {
+    const enabled = isExtensionEnabled(ext.id);
+    const card = document.createElement('div');
+    card.className = 'ext-card';
+
+    const main = document.createElement('div');
+    main.className = 'ext-main';
+    const title = document.createElement('div');
+    title.className = 'ext-title';
+    title.textContent = ext.name;
+    if (ext.raw) {
+      const badge = document.createElement('span');
+      badge.className = 'ext-badge';
+      badge.textContent = 'raw';
+      title.appendChild(badge);
+    }
+    const desc = document.createElement('div');
+    desc.className = 'ext-desc';
+    desc.textContent = ext.description || '';
+    const meta = document.createElement('div');
+    meta.className = 'ext-meta';
+    meta.textContent = `v${ext.version} · ${ext.author}`;
+    // list any commands this extension contributes
+    const cmds = extensionCommands.filter((c) => c.owner === ext.id);
+    if (cmds.length) meta.textContent += ` · commands: ${cmds.map((c) => c.title).join(', ')}`;
+    main.append(title, desc, meta);
+
+    const toggle = document.createElement('button');
+    toggle.className = 'ext-toggle btn' + (enabled ? ' primary' : '');
+    toggle.textContent = enabled ? 'Enabled' : 'Disabled';
+    toggle.addEventListener('click', () => {
+      setExtensionEnabled(ext, !enabled);
+      renderExtensionList();
+    });
+
+    card.append(main, toggle);
+    list.appendChild(card);
+  }
+}
+
+$('ext-close').addEventListener('click', hideExtensions);
+$('extensions').addEventListener('mousedown', (e) => {
+  if (e.target === $('extensions')) hideExtensions();
+});
+$('ext-install').addEventListener('click', installRawExtension);
+
+async function installRawExtension() {
+  const result = await showDialog('Install Extension from Source', [
+    {
+      type: 'note',
+      text: 'Paste an extension object with an activate(api) function. It runs in this page — only install code you trust (usually your own).',
+    },
+    {
+      type: 'textarea',
+      name: 'source',
+      label: 'Extension source',
+      value:
+        '{\n  id: "my.hello",\n  name: "Hello",\n  activate(api) {\n    const item = api.addStatusItem({ id: "hello", text: "👋 hello" });\n    api.onActiveDocument(() => item.update("👋 " + (api.getModel() ? "editing" : "idle")));\n  }\n}',
+    },
+  ]);
+  if (!result) return;
+  const { ext, error } = compileRawExtension(result.source);
+  if (error) {
+    statusMessage(`Extension error: ${error}`);
+    return;
+  }
+  state.rawExtensions.push(ext);
+  setExtensionEnabled(ext, true);
+  renderExtensionList();
+  statusMessage(`Installed “${ext.name}”`);
+}
+
+// ---------------------------------------------------------------- raw mode
+
+function setRawMode(on) {
+  state.rawMode = on;
+  applyRawMode();
+  rebuildMenus();
+}
+
+// Raw mode: show the document as plain, unhighlighted text with all
+// invisibles visible and wrapping off — the raw bytes, essentially.
+function applyRawMode() {
+  const doc = activeDoc();
+  $('status-raw').classList.toggle('hidden', !state.rawMode);
+  if (!doc) return;
+  if (state.rawMode) {
+    if (doc._realLanguage === undefined) doc._realLanguage = doc.model.getLanguageId();
+    monaco.editor.setModelLanguage(doc.model, 'plaintext');
+    editor.updateOptions({ renderWhitespace: 'all', renderControlCharacters: true, wordWrap: 'off' });
+  } else {
+    if (doc._realLanguage !== undefined) {
+      monaco.editor.setModelLanguage(doc.model, doc._realLanguage);
+      doc._realLanguage = undefined;
+    }
+    editor.updateOptions({
+      renderWhitespace: state.showInvisibles ? 'all' : 'none',
+      renderControlCharacters: state.showInvisibles,
+      wordWrap: state.softWrap ? 'on' : 'off',
+    });
+  }
+  updateStatusBar();
+  scheduleFunctionScan();
+}
+
+$('status-raw').addEventListener('click', () => setRawMode(false));
+
+// ---------------------------------------------------------------- account
+
+function renderAvatar() {
+  const avatar = $('account-avatar');
+  if (state.account) {
+    avatar.textContent = state.account.name.trim().charAt(0).toUpperCase() || '?';
+    avatar.style.background = state.account.color || '#888';
+    avatar.style.color = '#fff';
+    $('account-btn').title = `Signed in as ${state.account.name}`;
+  } else {
+    avatar.textContent = '?';
+    avatar.style.background = '';
+    avatar.style.color = '';
+    $('account-btn').title = 'Sign in';
+  }
+}
+
+async function loadAccount() {
+  try {
+    const res = await fetch('/api/account');
+    const data = await res.json();
+    state.account = data.account || null;
+    if (state.account && state.account.settings) applySyncedSettings(state.account.settings);
+  } catch {
+    state.account = null;
+  }
+  renderAvatar();
+}
+
+function currentSettings() {
+  return {
+    theme: state.theme,
+    animations: state.animations,
+    softWrap: state.softWrap,
+    tabWidth: state.tabWidth,
+    extensions: JSON.parse(localStorage.getItem('limeedit.extensions') || '{}'),
+  };
+}
+
+// Apply an account's synced settings, but only for preferences this browser
+// hasn't set locally. Settings Sync seeds a fresh environment; it never
+// clobbers newer local changes (same as VS Code — local edits win and are
+// pushed back up via "Sync Settings Now").
+function applySyncedSettings(s) {
+  if (!s || typeof s !== 'object') return;
+  const unset = (key) => localStorage.getItem(key) === null;
+
+  if (s.theme && unset('limeedit.theme')) {
+    state.theme = s.theme;
+    localStorage.setItem('limeedit.theme', s.theme);
+    document.documentElement.dataset.theme = s.theme;
+    monaco.editor.setTheme(s.theme === 'dark' ? 'lime-dark' : 'lime-light');
+  }
+  if (typeof s.animations === 'boolean' && unset('limeedit.animations')) setAnimations(s.animations);
+  if (typeof s.softWrap === 'boolean' && unset('limeedit.softWrap')) setSoftWrap(s.softWrap);
+  if (s.tabWidth && unset('limeedit.tabWidth')) {
+    state.tabWidth = s.tabWidth;
+    localStorage.setItem('limeedit.tabWidth', String(s.tabWidth));
+    editor.updateOptions({ tabSize: s.tabWidth });
+  }
+  if (s.extensions && typeof s.extensions === 'object' && unset('limeedit.extensions')) {
+    localStorage.setItem('limeedit.extensions', JSON.stringify(s.extensions));
+    state.enabledExtensions = { ...state.enabledExtensions, ...s.extensions };
+    activateEnabledExtensions();
+  }
+  updateStatusBar();
+}
+
+function showAccount() {
+  const body = $('account-body');
+  body.textContent = '';
+
+  if (state.account) {
+    const head = document.createElement('div');
+    head.className = 'account-head';
+    const av = document.createElement('span');
+    av.className = 'account-avatar big';
+    av.textContent = state.account.name.charAt(0).toUpperCase();
+    av.style.background = state.account.color || '#888';
+    av.style.color = '#fff';
+    const info = document.createElement('div');
+    const nm = document.createElement('div');
+    nm.className = 'account-name';
+    nm.textContent = state.account.name;
+    const em = document.createElement('div');
+    em.className = 'account-email dim';
+    em.textContent = state.account.email || 'no email';
+    info.append(nm, em);
+    head.append(av, info);
+    body.appendChild(head);
+
+    const note = document.createElement('p');
+    note.className = 'dim account-note';
+    note.textContent =
+      'Signed in locally. Settings Sync stores your theme, animations, tab width, and enabled extensions with this profile.';
+    body.appendChild(note);
+
+    const row = document.createElement('div');
+    row.className = 'dialog-buttons';
+    const syncBtn = mkBtn('Sync Settings Now', 'primary', async () => {
+      await fetch('/api/account/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentSettings()),
+      });
+      statusMessage('Settings synced to your account');
+      $('account').classList.add('hidden');
+    });
+    const outBtn = mkBtn('Sign Out', '', async () => {
+      await fetch('/api/account', { method: 'DELETE' });
+      state.account = null;
+      renderAvatar();
+      $('account').classList.add('hidden');
+      statusMessage('Signed out');
+    });
+    const closeBtn = mkBtn('Close', 'subtle', () => $('account').classList.add('hidden'));
+    row.append(syncBtn, outBtn, closeBtn);
+    body.appendChild(row);
+  } else {
+    const h = document.createElement('h3');
+    h.textContent = 'Sign in to LimeEdit';
+    body.appendChild(h);
+    const p = document.createElement('p');
+    p.className = 'dim account-note';
+    p.textContent =
+      'A local profile for this editor — no password, no cloud. It gives you an avatar and enables Settings Sync across your sessions on this machine.';
+    body.appendChild(p);
+
+    const nameField = mkField('Display name', 'text', 'account-name-input');
+    const emailField = mkField('Email (optional)', 'text', 'account-email-input');
+    body.append(nameField.wrap, emailField.wrap);
+
+    const row = document.createElement('div');
+    row.className = 'dialog-buttons';
+    const inBtn = mkBtn('Sign In', 'primary', async () => {
+      const name = nameField.input.value.trim();
+      if (!name) {
+        statusMessage('A display name is required');
+        return;
+      }
+      const res = await fetch('/api/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email: emailField.input.value.trim(), settings: currentSettings() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        statusMessage(data.error || 'Sign in failed');
+        return;
+      }
+      state.account = data.account;
+      renderAvatar();
+      $('account').classList.add('hidden');
+      statusMessage(`Signed in as ${data.account.name}`);
+    });
+    const cancelBtn = mkBtn('Cancel', 'subtle', () => $('account').classList.add('hidden'));
+    row.append(inBtn, cancelBtn);
+    body.appendChild(row);
+    setTimeout(() => nameField.input.focus(), 0);
+  }
+
+  $('account').classList.remove('hidden');
+}
+
+function mkBtn(label, variant, onClick) {
+  const b = document.createElement('button');
+  b.className = 'btn' + (variant ? ' ' + variant : '');
+  b.textContent = label;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function mkField(label, type, id) {
+  const wrap = document.createElement('div');
+  wrap.className = 'dialog-field';
+  const lab = document.createElement('label');
+  lab.textContent = label;
+  lab.htmlFor = id;
+  const input = document.createElement('input');
+  input.type = type;
+  input.id = id;
+  wrap.append(lab, input);
+  return { wrap, input };
+}
+
+$('account-btn').addEventListener('click', showAccount);
+$('account').addEventListener('mousedown', (e) => {
+  if (e.target === $('account')) $('account').classList.add('hidden');
+});
+
 // ---------------------------------------------------------------- soft wrap toggle
 
 function setSoftWrap(on) {
@@ -588,15 +1027,28 @@ function showDialog(title, fields) {
         }
         wrap.append(label, select);
         inputs[field.name] = () => select.value;
+      } else if (field.type === 'textarea') {
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        const area = document.createElement('textarea');
+        area.className = 'dialog-textarea';
+        area.spellcheck = false;
+        area.rows = field.rows || 10;
+        area.value = field.value ?? '';
+        wrap.append(label, area);
+        inputs[field.name] = () => area.value;
+      } else if (field.type === 'note') {
+        wrap.className = 'dialog-note';
+        wrap.textContent = field.text;
       }
       body.appendChild(wrap);
     }
 
     overlay.classList.remove('hidden');
-    const firstInput = body.querySelector('input[type=text], input[type=number], select');
+    const firstInput = body.querySelector('input[type=text], input[type=number], textarea, select');
     if (firstInput) {
       firstInput.focus();
-      if (firstInput.select) firstInput.select();
+      if (firstInput.select && firstInput.tagName !== 'TEXTAREA') firstInput.select();
     }
 
     function finish(result) {
@@ -614,7 +1066,7 @@ function showDialog(title, fields) {
     const onOk = () => finish(collect());
     const onCancel = () => finish(null);
     function onKey(e) {
-      if (e.key === 'Enter' && e.target.tagName !== 'SELECT') onOk();
+      if (e.key === 'Enter' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') onOk();
       if (e.key === 'Escape') onCancel();
     }
     $('dialog-ok').addEventListener('click', onOk);
@@ -882,12 +1334,26 @@ function menuDefinitions() {
         { label: 'Soft Wrap Text', checked: state.softWrap, action: () => setSoftWrap(!state.softWrap) },
         { label: 'Show Invisibles', checked: state.showInvisibles, action: toggleInvisibles },
         { label: 'Show Minimap', checked: !!editor.getOption(monaco.editor.EditorOption.minimap).enabled, action: toggleMinimap },
+        { label: 'Raw Mode (plain text, show all)', checked: state.rawMode, action: () => setRawMode(!state.rawMode) },
         { sep: true },
         { label: 'Toggle Sidebar', accel: 'Mod+0', action: toggleSidebar },
         { sep: true },
         { label: 'Smooth Animations', checked: state.animations, action: () => setAnimations(!state.animations) },
         { label: 'Dark Mode', checked: state.theme === 'dark', action: toggleTheme },
       ],
+    },
+    {
+      title: 'Extensions',
+      items: [
+        { label: 'Manage Extensions…', accel: 'Shift+Mod+X', action: showExtensions },
+        { label: 'Install from Source…', action: installRawExtension },
+        { sep: true },
+        { label: 'Command Palette (incl. extension commands)…', accel: 'F1', action: editorAction('editor.action.quickCommand') },
+      ],
+    },
+    {
+      title: 'Account',
+      items: [{ label: state.account ? `Signed in: ${state.account.name}` : 'Sign In…', action: showAccount }],
     },
   ];
 }
@@ -1051,6 +1517,10 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeAllMenus();
     closeFunctionMenu();
+    for (const id of ['extensions', 'account']) {
+      if (!$(id).classList.contains('hidden')) $(id).classList.add('hidden');
+    }
+    if (!$('ext-panel').classList.contains('hidden')) $('ext-panel').classList.add('hidden');
   }
   const mod = isMac ? e.metaKey : e.ctrlKey;
   if (!mod) return;
@@ -1060,6 +1530,7 @@ document.addEventListener('keydown', (e) => {
   else if (key === 's' && !e.altKey) { e.preventDefault(); saveDoc(activeDoc(), { saveAs: e.shiftKey }); }
   else if (key === 'w' && !e.shiftKey && !e.altKey) { e.preventDefault(); closeDoc(activeDoc()); }
   else if (key === 'f' && e.shiftKey && !e.altKey) { e.preventDefault(); toggleSearchDrawer(true); }
+  else if (key === 'x' && e.shiftKey && !e.altKey) { e.preventDefault(); showExtensions(); }
   else if (key === '0' && !e.shiftKey && !e.altKey) { e.preventDefault(); toggleSidebar(); }
 });
 
@@ -1096,6 +1567,8 @@ async function boot() {
   renderOpenDocs();
   updateNavbar();
   updateStatusBar();
+  renderAvatar();
+  activateEnabledExtensions();
   try {
     const res = await fetch('/api/workspace');
     const info = await res.json();
@@ -1104,6 +1577,7 @@ async function boot() {
   } catch {
     /* server info is cosmetic */
   }
+  await loadAccount();
   await refreshTree();
   activateDoc(null);
 }

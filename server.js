@@ -28,6 +28,11 @@ const MAX_SEARCH_FILE_SIZE = 1.5 * 1024 * 1024; // skip huge files in multi-file
 const MAX_SEARCH_MATCHES = 2000;
 const MAX_QUICKOPEN_RESULTS = 200;
 
+// Account + synced settings live outside the workspace so they don't pollute
+// the user's project. LIMEEDIT_DATA overrides the location (tests use it).
+const DATA_DIR = process.env.LIMEEDIT_DATA || path.join(__dirname, '.limeedit-data');
+const ACCOUNT_FILE = path.join(DATA_DIR, 'account.json');
+
 const app = express();
 app.use(express.json({ limit: '64mb' }));
 
@@ -195,6 +200,66 @@ app.post('/api/search', async (req, res) => {
 app.get('/api/workspace', (_req, res) => {
   res.json({ root: ROOT, name: path.basename(ROOT) });
 });
+
+// ---------------------------------------------------------------- account + sync
+// A lightweight single-user profile, persisted server-side. There is no real
+// authentication here — it's a local editor — so this is a stored identity plus
+// a home for VS Code-style settings sync, not a security boundary.
+
+async function readAccount() {
+  try {
+    return JSON.parse(await fsp.readFile(ACCOUNT_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+app.get('/api/account', async (_req, res) => {
+  res.json({ account: await readAccount() });
+});
+
+app.post('/api/account', async (req, res) => {
+  const { name, email, settings } = req.body || {};
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'A display name is required' });
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'That email address looks invalid' });
+  }
+  const existing = await readAccount();
+  const account = {
+    name: name.trim().slice(0, 80),
+    email: (email || '').trim().slice(0, 120),
+    // Avatar is a deterministic colour derived from the name, HSL as a hex-ish string.
+    color: existing && existing.name === name.trim() ? existing.color : avatarColor(name),
+    settings: settings && typeof settings === 'object' ? settings : (existing && existing.settings) || {},
+    signedInAt: new Date().toISOString(),
+  };
+  await fsp.mkdir(DATA_DIR, { recursive: true });
+  await fsp.writeFile(ACCOUNT_FILE, JSON.stringify(account, null, 2), 'utf8');
+  res.json({ account });
+});
+
+// Persist just the synced settings blob for the signed-in account.
+app.put('/api/account/settings', async (req, res) => {
+  const account = await readAccount();
+  if (!account) return res.status(401).json({ error: 'Not signed in' });
+  account.settings = req.body && typeof req.body === 'object' ? req.body : {};
+  account.syncedAt = new Date().toISOString();
+  await fsp.writeFile(ACCOUNT_FILE, JSON.stringify(account, null, 2), 'utf8');
+  res.json({ account });
+});
+
+app.delete('/api/account', async (_req, res) => {
+  await fsp.rm(ACCOUNT_FILE, { force: true });
+  res.json({ ok: true });
+});
+
+function avatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return `hsl(${hash % 360}, 55%, 45%)`;
+}
 
 // ---------------------------------------------------------------- static assets
 // Monaco — the editor of microsoft/vscode — served straight from the npm package.
