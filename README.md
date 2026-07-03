@@ -35,6 +35,8 @@ npm start [path-to-workspace]     # defaults to the current directory
 - In-document Find & Replace with regex (`⌘F` / `⌥⌘F`)
 - The Command Palette (`F1`)
 - Full undo/redo, code folding, auto-indent
+- VS Code's smooth motion: smooth caret animation, smooth cursor blink,
+  and smooth (momentum) scrolling
 
 **From the BBEdit playbook:**
 
@@ -56,10 +58,24 @@ npm start [path-to-workspace]     # defaults to the current directory
 | Soft-wrap toggle, Show Invisibles | View menu / navigation bar |
 | Line-ending (LF/CRLF), language mode & tab-width switchers | status bar |
 | Light & dark chrome | View ▸ Dark Mode |
+| Smooth animations (editor + UI) | View ▸ Smooth Animations |
 
 Text transformations follow BBEdit's rule: they apply to the **selection** if
 there is one, otherwise to the **entire document**, and every one of them is
 undoable.
+
+### Smooth animations
+
+LimeEdit brings VS Code's polished, animated feel to both layers. In the editor
+that's the smooth caret glide, smooth cursor blink, and momentum scrolling from
+Monaco. In the surrounding BBEdit chrome, overlays and panels animate in the way
+VS Code's do: the Open Quickly palette and dialogs rise and fade, menus and the
+function popup fade down from their anchor, the Multi-File Search drawer slides
+up from the bottom, and hover/selection states ease rather than snap.
+
+Toggle it all from **View ▸ Smooth Animations** (the choice is remembered), and
+it automatically stands down when the operating system requests
+`prefers-reduced-motion`.
 
 ## Architecture
 

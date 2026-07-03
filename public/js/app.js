@@ -54,6 +54,7 @@ const state = {
   untitledCounter: 0,
   theme: localStorage.getItem('limeedit.theme') || 'light',
   softWrap: localStorage.getItem('limeedit.softWrap') === 'true',
+  animations: localStorage.getItem('limeedit.animations') !== 'false',
   showInvisibles: false,
   tabWidth: Number(localStorage.getItem('limeedit.tabWidth')) || 4,
   workspaceName: '',
@@ -62,6 +63,7 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 document.documentElement.dataset.theme = state.theme;
+document.documentElement.classList.toggle('no-motion', !state.animations);
 
 const editor = monaco.editor.create($('editor'), {
   model: null,
@@ -78,6 +80,10 @@ const editor = monaco.editor.create($('editor'), {
   renderLineHighlight: 'line',
   fixedOverflowWidgets: true,
   padding: { top: 4 },
+  // vscode's smooth-motion feel
+  smoothScrolling: state.animations,
+  cursorSmoothCaretAnimation: state.animations ? 'on' : 'off',
+  cursorBlinking: state.animations ? 'smooth' : 'blink',
 });
 
 // ---------------------------------------------------------------- documents
@@ -879,6 +885,7 @@ function menuDefinitions() {
         { sep: true },
         { label: 'Toggle Sidebar', accel: 'Mod+0', action: toggleSidebar },
         { sep: true },
+        { label: 'Smooth Animations', checked: state.animations, action: () => setAnimations(!state.animations) },
         { label: 'Dark Mode', checked: state.theme === 'dark', action: toggleTheme },
       ],
     },
@@ -1016,6 +1023,18 @@ function toggleTheme() {
   localStorage.setItem('limeedit.theme', state.theme);
   document.documentElement.dataset.theme = state.theme;
   monaco.editor.setTheme(state.theme === 'dark' ? 'lime-dark' : 'lime-light');
+  rebuildMenus();
+}
+
+function setAnimations(on) {
+  state.animations = on;
+  localStorage.setItem('limeedit.animations', String(on));
+  document.documentElement.classList.toggle('no-motion', !on);
+  editor.updateOptions({
+    smoothScrolling: on,
+    cursorSmoothCaretAnimation: on ? 'on' : 'off',
+    cursorBlinking: on ? 'smooth' : 'blink',
+  });
   rebuildMenus();
 }
 
