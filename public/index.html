@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LimeEdit</title>
+  <script>
+    // Apply the saved theme before first paint to avoid a light-mode flash.
+    document.documentElement.dataset.theme = localStorage.getItem('limeedit.theme') || 'light';
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍋‍🟩</text></svg>" />
+  <link rel="stylesheet" href="/css/limeedit.css" />
+</head>
+<body>
+  <!-- Menu bar (Mac-style, populated by js/menus.js) -->
+  <header id="menubar">
+    <div class="menu-logo" title="LimeEdit — it still doesn't suck">✏️ <strong>LimeEdit</strong></div>
+    <nav id="menus"></nav>
+    <div class="menu-spacer"></div>
+    <div id="workspace-name" class="menu-workspace" title="Workspace root"></div>
+  </header>
+
+  <div id="main">
+    <!-- Sidebar: currently open documents + file browser -->
+    <aside id="sidebar">
+      <section class="side-section" id="open-docs-section">
+        <h2 class="side-heading">Currently Open Documents <span id="open-count"></span></h2>
+        <ul id="open-docs" class="doc-list"></ul>
+      </section>
+      <section class="side-section grow" id="browser-section">
+        <h2 class="side-heading">Files</h2>
+        <div id="file-tree" class="file-tree"></div>
+      </section>
+    </aside>
+    <div id="sidebar-resizer" title="Drag to resize sidebar"></div>
+
+    <!-- Editor column -->
+    <div id="editor-column">
+      <!-- BBEdit-style navigation bar -->
+      <div id="navbar">
+        <span id="dirty-dot" class="dirty-dot" title="Document has unsaved changes"></span>
+        <button id="function-popup" class="nav-popup" title="Function popup — jump to a function or heading">
+          <span class="nav-popup-icon">ƒ</span><span id="function-popup-label">(no symbols)</span><span class="nav-caret">▾</span>
+        </button>
+        <span id="doc-path" class="doc-path"></span>
+        <span class="nav-spacer"></span>
+        <button id="wrap-toggle" class="nav-btn" title="Toggle soft wrap">⤶ wrap</button>
+      </div>
+
+      <div id="editor-host">
+        <div id="editor"></div>
+        <div id="no-doc" class="no-doc hidden">
+          <div class="no-doc-inner">
+            <div class="no-doc-pencil">✏️</div>
+            <p><strong>LimeEdit</strong></p>
+            <p class="dim">A BBEdit-style editor, powered by the editor core of Visual&nbsp;Studio&nbsp;Code.</p>
+            <p class="dim">⌘N new document &nbsp;·&nbsp; ⌘P open quickly &nbsp;·&nbsp; ⇧⌘F multi-file search</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multi-file search drawer -->
+      <div id="search-drawer" class="hidden">
+        <div class="search-bar">
+          <span class="search-title">Multi-File Search</span>
+          <input id="search-input" type="text" placeholder="Find in all files… (supports grep patterns)" spellcheck="false" />
+          <label class="chk"><input type="checkbox" id="search-regex" /> Grep</label>
+          <label class="chk"><input type="checkbox" id="search-case" /> Case sensitive</label>
+          <label class="chk"><input type="checkbox" id="search-word" /> Whole word</label>
+          <button id="search-go" class="btn">Find All</button>
+          <button id="search-close" class="btn subtle" title="Close (Esc)">✕</button>
+        </div>
+        <div id="search-status" class="search-status"></div>
+        <div id="search-results" class="search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <footer id="statusbar">
+    <button id="status-language" class="status-item" title="Change language mode">Plain Text</button>
+    <button id="status-eol" class="status-item" title="Toggle line endings">LF (Unix)</button>
+    <span class="status-item static">UTF-8</span>
+    <button id="status-tab" class="status-item" title="Cycle tab width">Tab: 4</button>
+    <span class="status-spacer"></span>
+    <span id="status-message" class="status-message"></span>
+    <button id="status-position" class="status-item" title="Go to line…">Ln 1, Col 1</button>
+  </footer>
+
+  <!-- Open Quickly overlay -->
+  <div id="quickopen" class="overlay hidden">
+    <div class="quickopen-panel">
+      <input id="quickopen-input" type="text" placeholder="Open Quickly — type a file name…" spellcheck="false" />
+      <ul id="quickopen-results"></ul>
+    </div>
+  </div>
+
+  <!-- Generic dialog -->
+  <div id="dialog" class="overlay hidden">
+    <div class="dialog-panel">
+      <h3 id="dialog-title"></h3>
+      <div id="dialog-body"></div>
+      <div class="dialog-buttons">
+        <button id="dialog-cancel" class="btn">Cancel</button>
+        <button id="dialog-ok" class="btn primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monaco: the editor core of microsoft/vscode, via its AMD loader -->
+  <script src="/vs/loader.js"></script>
+  <script>
+    (function () {
+      var vsBase = location.origin + '/vs';
+      require.config({ paths: { vs: vsBase } });
+      // Language workers run in a data:-URL context, so every URL they use
+      // must be absolute — hand them an absolute baseUrl + workerMain.
+      window.MonacoEnvironment = {
+        getWorkerUrl: function () {
+          var bootstrap =
+            "self.MonacoEnvironment = { baseUrl: '" + location.origin + "/' };" +
+            "importScripts('" + vsBase + "/base/worker/workerMain.js');";
+          return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(bootstrap);
+        },
+      };
+      window.monacoReady = new Promise(function (resolve) {
+        require(['vs/editor/editor.main'], function () { resolve(window.monaco); });
+      });
+    })();
+  </script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

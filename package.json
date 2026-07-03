@@ -1,0 +1,23 @@
+{
+  "name": "limeedit",
+  "version": "1.0.0",
+  "description": "A BBEdit-style text editor powered by Monaco, the editor core of Visual Studio Code (microsoft/vscode).",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.mjs"
+  },
+  "keywords": [
+    "editor",
+    "bbedit",
+    "monaco",
+    "vscode",
+    "text-editor"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "monaco-editor": "^0.52.2"
+  }
+}
