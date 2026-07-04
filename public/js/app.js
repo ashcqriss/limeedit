@@ -93,13 +93,57 @@ monaco.editor.defineTheme('zed-one-light', {
   },
 });
 
+// BBEdit Liquid Glass — a classic BBEdit palette on a lightly translucent
+// editor surface, so the frosted-glass wallpaper shows faintly through. The
+// glass chrome itself lives in the CSS (backdrop-filter over a wallpaper).
+monaco.editor.defineTheme('bbedit-glass-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '6f8b6f', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '1d3fbb' },
+    { token: 'string', foreground: 'b02a37' },
+    { token: 'number', foreground: '7a3ea0' },
+    { token: 'type', foreground: '0d7a7a' },
+    { token: 'delimiter', foreground: '5a5a5f' },
+  ],
+  colors: {
+    'editor.background': '#ffffffe6', // ~90% so the wallpaper hints through
+    'editor.foreground': '#2a2a2c',
+    'editor.lineHighlightBackground': '#00000008',
+    'editorLineNumber.foreground': '#b3b3b8',
+    'editorCursor.foreground': '#2a2a2c',
+    'editor.selectionBackground': '#a8c7ff66',
+  },
+});
+
+monaco.editor.defineTheme('bbedit-glass-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '7f9b7f', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '9db4ff' },
+    { token: 'string', foreground: 'e58f8f' },
+    { token: 'number', foreground: 'c9a2e8' },
+    { token: 'type', foreground: '6fc2c2' },
+  ],
+  colors: {
+    'editor.background': '#1e2126e6',
+    'editor.foreground': '#e2e4ea',
+    'editor.lineHighlightBackground': '#ffffff0d',
+    'editorLineNumber.foreground': '#5b616d',
+    'editorCursor.foreground': '#e2e4ea',
+    'editor.selectionBackground': '#5a8cff44',
+  },
+});
+
 // ---------------------------------------------------------------- state
 
 const state = {
   docs: [], // { id, path, name, model, savedVersionId, viewState }
   activeId: null,
   untitledCounter: 0,
-  theme: localStorage.getItem('limeedit.theme') || 'light',
+  theme: localStorage.getItem('limeedit.theme') || 'bbedit-glass-light',
   softWrap: localStorage.getItem('limeedit.softWrap') === 'true',
   animations: localStorage.getItem('limeedit.animations') !== 'false',
   showInvisibles: false,
@@ -126,6 +170,8 @@ function loadEnabledExtensions() {
 // `id` drives the specific chrome overrides (data-app-theme); `monaco` is the
 // editor theme; `sibling` is what the Dark Mode toggle flips to.
 const THEMES = {
+  'bbedit-glass-light': { id: 'bbedit-glass-light', label: 'BBEdit Liquid Glass', base: 'light', monaco: 'bbedit-glass-light', sibling: 'bbedit-glass-dark' },
+  'bbedit-glass-dark': { id: 'bbedit-glass-dark', label: 'BBEdit Liquid Glass (Dark)', base: 'dark', monaco: 'bbedit-glass-dark', sibling: 'bbedit-glass-light' },
   light: { id: 'light', label: 'LimeEdit Light', base: 'light', monaco: 'lime-light', sibling: 'dark' },
   dark: { id: 'dark', label: 'LimeEdit Dark', base: 'dark', monaco: 'lime-dark', sibling: 'light' },
   'zed-one-dark': { id: 'zed-one-dark', label: 'Zed — One Dark', base: 'dark', monaco: 'zed-one-dark', sibling: 'zed-one-light' },

@@ -89,6 +89,55 @@ html[data-app-theme='zed-one-light'] {
   --match-bg: #f6e6a8;
 }
 
+/* BBEdit Liquid Glass — translucent chrome vars. The frosted look (backdrop
+ * blur + wallpaper + specular highlights) is applied in the Liquid Glass
+ * section further down; here we just make the surfaces see-through. */
+html[data-app-theme='bbedit-glass-light'] {
+  --chrome-bg: rgba(250, 250, 250, 0.6);
+  --chrome-bg-grad: linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.5));
+  --chrome-border: rgba(120, 120, 130, 0.28);
+  --chrome-text: #2a2a2c;
+  --chrome-text-dim: #6a6a72;
+  --sidebar-bg: rgba(255, 255, 255, 0.42);
+  --sidebar-selected: rgba(120, 160, 255, 0.22);
+  --sidebar-active: rgba(80, 135, 255, 0.34);
+  --editor-bg: rgba(255, 255, 255, 0.72);
+  --accent: #3d7bd6;
+  --accent-dark: #275fb0;
+  --dirty: #444;
+  --menu-bg: rgba(250, 250, 252, 0.72);
+  --menu-hover: rgba(55, 117, 215, 0.92);
+  --menu-hover-text: #fff;
+  --panel-bg: rgba(255, 255, 255, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.62);
+  --input-border: rgba(0, 0, 0, 0.16);
+  --match-bg: rgba(255, 224, 120, 0.85);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+html[data-app-theme='bbedit-glass-dark'] {
+  --chrome-bg: rgba(40, 44, 52, 0.5);
+  --chrome-bg-grad: linear-gradient(rgba(64, 70, 82, 0.6), rgba(38, 42, 50, 0.42));
+  --chrome-border: rgba(255, 255, 255, 0.14);
+  --chrome-text: #e2e4ea;
+  --chrome-text-dim: #99a0ad;
+  --sidebar-bg: rgba(28, 32, 40, 0.42);
+  --sidebar-selected: rgba(120, 160, 255, 0.2);
+  --sidebar-active: rgba(90, 140, 255, 0.36);
+  --editor-bg: rgba(30, 33, 38, 0.6);
+  --accent: #6ea8ff;
+  --accent-dark: #4d86e0;
+  --dirty: #ccc;
+  --menu-bg: rgba(38, 42, 50, 0.78);
+  --menu-hover: rgba(70, 122, 205, 0.92);
+  --menu-hover-text: #fff;
+  --panel-bg: rgba(30, 34, 42, 0.55);
+  --input-bg: rgba(18, 20, 26, 0.5);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --match-bg: rgba(120, 110, 40, 0.7);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -746,6 +795,96 @@ html[data-theme='dark'] .ext-panel-body a { color: var(--accent); }
   color: var(--chrome-text-dim);
   line-height: 1.5;
   margin-bottom: 6px;
+}
+
+/* ---------------------------------------------------------------- liquid glass
+ * The BBEdit Liquid Glass theme: a soft wallpaper behind everything, with the
+ * chrome rendered as frosted, backdrop-blurred glass floating over it, edged
+ * with a bright specular highlight. Only active under the glass app-themes.
+ */
+
+/* A calm wallpaper gives the frosted panels something to refract. */
+html[data-app-theme='bbedit-glass-light'] body {
+  background:
+    radial-gradient(1200px 620px at 14% 8%, rgba(118, 185, 0, 0.20), transparent 60%),
+    radial-gradient(1000px 720px at 86% 92%, rgba(80, 130, 255, 0.18), transparent 55%),
+    linear-gradient(135deg, #e9f1e8, #eef1f7 50%, #f3ecf6);
+}
+html[data-app-theme='bbedit-glass-dark'] body {
+  background:
+    radial-gradient(1200px 620px at 14% 8%, rgba(118, 185, 0, 0.16), transparent 60%),
+    radial-gradient(1000px 720px at 86% 92%, rgba(80, 130, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, #1e2622, #212633 50%, #271f2e);
+}
+
+/* Frost every chrome surface so the wallpaper blurs through it. */
+html[data-app-theme^='bbedit-glass'] #menubar,
+html[data-app-theme^='bbedit-glass'] #navbar,
+html[data-app-theme^='bbedit-glass'] #statusbar,
+html[data-app-theme^='bbedit-glass'] #sidebar,
+html[data-app-theme^='bbedit-glass'] #search-drawer,
+html[data-app-theme^='bbedit-glass'] .menu-dropdown,
+html[data-app-theme^='bbedit-glass'] #function-menu,
+html[data-app-theme^='bbedit-glass'] .quickopen-panel,
+html[data-app-theme^='bbedit-glass'] .dialog-panel,
+html[data-app-theme^='bbedit-glass'] .big-panel,
+html[data-app-theme^='bbedit-glass'] .account-panel,
+html[data-app-theme^='bbedit-glass'] .ext-panel,
+html[data-app-theme^='bbedit-glass'] #no-doc {
+  backdrop-filter: blur(24px) saturate(185%);
+  -webkit-backdrop-filter: blur(24px) saturate(185%);
+}
+
+/* Floating panels get rounded corners + a bright top-edge specular highlight. */
+html[data-app-theme^='bbedit-glass'] .menu-dropdown,
+html[data-app-theme^='bbedit-glass'] #function-menu,
+html[data-app-theme^='bbedit-glass'] .quickopen-panel,
+html[data-app-theme^='bbedit-glass'] .dialog-panel,
+html[data-app-theme^='bbedit-glass'] .big-panel,
+html[data-app-theme^='bbedit-glass'] .account-panel {
+  border: 1px solid var(--chrome-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+html[data-app-theme='bbedit-glass-dark'] .menu-dropdown,
+html[data-app-theme='bbedit-glass-dark'] #function-menu,
+html[data-app-theme='bbedit-glass-dark'] .quickopen-panel,
+html[data-app-theme='bbedit-glass-dark'] .dialog-panel,
+html[data-app-theme='bbedit-glass-dark'] .big-panel,
+html[data-app-theme='bbedit-glass-dark'] .account-panel {
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Thin specular line along the bottom of the top bars and top of the status bar. */
+html[data-app-theme^='bbedit-glass'] #menubar,
+html[data-app-theme^='bbedit-glass'] #navbar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+html[data-app-theme='bbedit-glass-dark'] #menubar,
+html[data-app-theme='bbedit-glass-dark'] #navbar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* The editor column stays transparent so the wallpaper reads behind the
+ * lightly-translucent Monaco surface. */
+html[data-app-theme^='bbedit-glass'] #editor-host,
+html[data-app-theme^='bbedit-glass'] #main {
+  background: transparent;
+}
+
+/* backdrop-filter turns #menubar into its own stacking context, which would
+ * otherwise trap its dropdowns behind the editor. Lift the bar above #main
+ * (but below the modal overlays at z-index 2000) so menus paint on top. */
+html[data-app-theme^='bbedit-glass'] #menubar {
+  position: relative;
+  z-index: 1200;
+}
+
+/* Glass rounds the search input and buttons a touch more, iOS-style. */
+html[data-app-theme^='bbedit-glass'] #search-input,
+html[data-app-theme^='bbedit-glass'] .btn,
+html[data-app-theme^='bbedit-glass'] .nav-popup {
+  border-radius: 8px;
 }
 
 /* ---------------------------------------------------------------- animations

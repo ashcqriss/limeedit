@@ -11,9 +11,15 @@ source tree. BBEdit's ergonomics, VS Code's engine.
 
 *It still doesn't suck.®*
 
-![LimeEdit light theme — multi-file search, function popup, open documents sidebar](docs/screenshot-light.png)
+The default look is **BBEdit Liquid Glass** — a clean, classic BBEdit palette
+with Apple-style frosted, translucent chrome floating over a soft wallpaper:
 
-![LimeEdit dark theme](docs/screenshot-dark.png)
+![LimeEdit — BBEdit Liquid Glass, frosted Text menu over the editor](docs/screenshot-glass-menu.png)
+
+![LimeEdit — BBEdit Liquid Glass, dark](docs/screenshot-glass-dark.png)
+
+Prefer something flatter? The [Color Theme picker](#themes) also ships the
+original LimeEdit light/dark and Zed's One themes.
 
 ## Quick start
 
@@ -57,8 +63,8 @@ npm start [path-to-workspace]     # defaults to the current directory
 | Open Quickly (fuzzy file search) | `⌘P` |
 | Soft-wrap toggle, Show Invisibles | View menu / navigation bar |
 | Line-ending (LF/CRLF), language mode & tab-width switchers | status bar |
-| Light & dark chrome | View ▸ Dark Mode |
-| Zed "One" color themes | View ▸ Color Theme… (`⌘K ⌘T`) |
+| BBEdit Liquid Glass theme (default), light & dark | View ▸ Color Theme… |
+| LimeEdit light/dark + Zed "One" themes | View ▸ Color Theme… (`⌘K ⌘T`) |
 | Smooth animations (editor + UI) | View ▸ Smooth Animations |
 | Extension system with an extension host | Extensions menu (`⇧⌘X`) |
 | Account / sign-in with Settings Sync | Account menu / avatar |
@@ -104,11 +110,31 @@ What we *can* borrow from Zed is its **identity**, and LimeEdit does:
 
 ![Zed — One Dark](docs/screenshot-zed-one-dark.png)
 
-![Zed — One Light](docs/screenshot-zed-one-light.png)
+## Themes
 
-Themes are chosen from a registry, remembered across sessions, and included in
-[Settings Sync](#account--settings-sync). The **Dark Mode** toggle flips within
-the current theme family (e.g. One Light ⇄ One Dark).
+Themes come from a registry, are remembered across sessions, and ride along in
+[Settings Sync](#account--settings-sync). Pick one from **View ▸ Color Theme…**
+(or the VS Code chord `⌘K ⌘T`); the **Dark Mode** toggle flips within the
+current theme's family (e.g. One Light ⇄ One Dark).
+
+| Theme | |
+| --- | --- |
+| **BBEdit Liquid Glass** (default) | Classic BBEdit palette + Apple-style frosted glass chrome |
+| **BBEdit Liquid Glass (Dark)** | The same, dark |
+| LimeEdit Light / Dark | The original flat lime chrome |
+| Zed — One Dark / One Light | Zed's signature "One" palettes |
+
+### Liquid glass
+
+The default theme leans into Apple's "liquid glass" look. A soft, faintly
+colored wallpaper sits behind everything; the menu bar, sidebar, navigation and
+status bars, menus, dialogs, and panels are rendered as **frosted, translucent
+glass** (`backdrop-filter` blur + saturation) floating over it, edged with a
+bright specular highlight and softly rounded. The editor surface itself is
+lightly translucent, so the wallpaper reads faintly behind your code. It's
+tuned to stay clean and readable — BBEdit calm, not a screensaver.
+
+![BBEdit Liquid Glass, light](docs/screenshot-glass-light.png)
 
 ## Extensions
 
