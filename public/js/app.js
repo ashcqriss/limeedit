@@ -97,6 +97,51 @@ monaco.editor.defineTheme('zed-one-light', {
   },
 });
 
+// Modern Zed's own default look: clean white, flat (no shadows), with a glossy
+// blue accent and a blue caret. The dark sibling keeps the same flat, minimal
+// feel on Zed's near-black slate.
+monaco.editor.defineTheme('zed-flat-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '9aa0a6' },
+    { token: 'keyword', foreground: '2472f8' },
+    { token: 'string', foreground: '3f8f3f' },
+    { token: 'number', foreground: 'c2410c' },
+    { token: 'type', foreground: '0e7490' },
+    { token: 'operator', foreground: '2472f8' },
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#1f2023',
+    'editor.lineHighlightBackground': '#f4f7ff',
+    'editorLineNumber.foreground': '#c3c7cd',
+    'editorCursor.foreground': '#2472f8',
+    'editor.selectionBackground': '#cfe0ff',
+  },
+});
+
+monaco.editor.defineTheme('zed-flat-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '5a6069' },
+    { token: 'keyword', foreground: '7aa2f7' },
+    { token: 'string', foreground: '9ece6a' },
+    { token: 'number', foreground: 'ff9e64' },
+    { token: 'type', foreground: '7dcfff' },
+    { token: 'operator', foreground: '7aa2f7' },
+  ],
+  colors: {
+    'editor.background': '#131417',
+    'editor.foreground': '#d5d8de',
+    'editor.lineHighlightBackground': '#1a1c22',
+    'editorLineNumber.foreground': '#3a3d45',
+    'editorCursor.foreground': '#7aa2f7',
+    'editor.selectionBackground': '#26314d',
+  },
+});
+
 // BBEdit Liquid Glass — a classic BBEdit palette on a lightly translucent
 // editor surface, so the frosted-glass wallpaper shows faintly through. The
 // glass chrome itself lives in the CSS (backdrop-filter over a wallpaper).
@@ -178,6 +223,8 @@ const THEMES = {
   'bbedit-glass-dark': { id: 'bbedit-glass-dark', label: 'BBEdit Liquid Glass (Dark)', base: 'dark', monaco: 'bbedit-glass-dark', sibling: 'bbedit-glass-light' },
   light: { id: 'light', label: 'LimeEdit Light', base: 'light', monaco: 'lime-light', sibling: 'dark' },
   dark: { id: 'dark', label: 'LimeEdit Dark', base: 'dark', monaco: 'lime-dark', sibling: 'light' },
+  zed: { id: 'zed', label: 'Zed', base: 'light', monaco: 'zed-flat-light', sibling: 'zed-dark' },
+  'zed-dark': { id: 'zed-dark', label: 'Zed (Dark)', base: 'dark', monaco: 'zed-flat-dark', sibling: 'zed' },
   'zed-one-dark': { id: 'zed-one-dark', label: 'Zed — One Dark', base: 'dark', monaco: 'zed-one-dark', sibling: 'zed-one-light' },
   'zed-one-light': { id: 'zed-one-light', label: 'Zed — One Light', base: 'light', monaco: 'zed-one-light', sibling: 'zed-one-dark' },
 };

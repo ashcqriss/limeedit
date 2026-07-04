@@ -123,8 +123,19 @@ current theme's family (e.g. One Light ⇄ One Dark).
 | --- | --- |
 | **BBEdit Liquid Glass** (default) | Classic BBEdit palette + Apple-style frosted glass chrome |
 | **BBEdit Liquid Glass (Dark)** | The same, dark |
+| **Zed** / **Zed (Dark)** | Modern Zed's own look — flat, shadow-free, glossy blue accent + blue caret |
+| Zed — One Dark / One Light | Zed's earlier "One" palettes |
 | LimeEdit Light / Dark | The original flat lime chrome |
-| Zed — One Dark / One Light | Zed's signature "One" palettes |
+
+### Zed
+
+Two flavours of Zed ship. **Zed — One Dark / One Light** are the classic Atom
+"One" palettes. **Zed** and **Zed (Dark)** recreate *modern* Zed's own default
+UI: clean white (or near-black), **completely flat — no drop shadows**, with a
+**glossy blue** accent on primary buttons, menu highlights, and selections, and
+a **blue caret**. Panels are edged with a hairline border instead of a shadow.
+
+![Zed — the flat, shadow-free default look with a glossy blue accent](docs/screenshot-zed-flat-light.png)
 
 ### Liquid glass
 

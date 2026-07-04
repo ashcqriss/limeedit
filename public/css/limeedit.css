@@ -89,6 +89,92 @@ html[data-app-theme='zed-one-light'] {
   --match-bg: #f6e6a8;
 }
 
+/* Modern Zed: flat white, no shadows, glossy blue accent. The --shadow token is
+ * neutralised to a hairline so panels read as flat, edge-defined surfaces. */
+html[data-app-theme='zed'] {
+  --chrome-bg: #ffffff;
+  --chrome-bg-grad: linear-gradient(#ffffff, #ffffff);
+  --chrome-border: #e6e6e9;
+  --chrome-text: #1f2023;
+  --chrome-text-dim: #8a8f98;
+  --sidebar-bg: #fbfbfc;
+  --sidebar-selected: #eef2f7;
+  --sidebar-active: #e0ebff;
+  --editor-bg: #ffffff;
+  --accent: #2472f8;
+  --accent-dark: #1a5fd0;
+  --dirty: #6b7280;
+  --menu-bg: #ffffff;
+  --menu-hover: #2472f8;
+  --menu-hover-text: #fff;
+  --panel-bg: #f7f8fa;
+  --input-bg: #ffffff;
+  --input-border: #d7d9de;
+  --match-bg: #ffe9a8;
+  --shadow: none;
+}
+
+html[data-app-theme='zed-dark'] {
+  --chrome-bg: #17181c;
+  --chrome-bg-grad: linear-gradient(#17181c, #17181c);
+  --chrome-border: #2a2c33;
+  --chrome-text: #d5d8de;
+  --chrome-text-dim: #7c828d;
+  --sidebar-bg: #131418;
+  --sidebar-selected: #22242b;
+  --sidebar-active: #24365e;
+  --editor-bg: #131417;
+  --accent: #7aa2f7;
+  --accent-dark: #5f86e0;
+  --dirty: #aeb4bf;
+  --menu-bg: #1b1d22;
+  --menu-hover: #2f6bd8;
+  --menu-hover-text: #fff;
+  --panel-bg: #1a1c21;
+  --input-bg: #101116;
+  --input-border: #2f323a;
+  --match-bg: #4a4520;
+  --shadow: none;
+}
+
+/* Zed's glossy blue: a subtle top-lit gradient on primary actions + the menu
+ * bar logo, and flat (shadow-free) menus/panels edged only by a hairline. */
+html[data-app-theme='zed'] .btn.primary,
+html[data-app-theme='zed-dark'] .btn.primary,
+html[data-app-theme='zed'] .ext-toggle.primary,
+html[data-app-theme='zed-dark'] .ext-toggle.primary,
+html[data-app-theme='zed'] .menu-item:hover,
+html[data-app-theme='zed-dark'] .menu-item:hover,
+html[data-app-theme='zed'] #quickopen-results li.selected,
+html[data-app-theme='zed-dark'] #quickopen-results li.selected {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  background-color: var(--accent);
+  border-color: var(--accent-dark);
+  color: #fff;
+}
+html[data-app-theme='zed'] .menu-item:hover .menu-accel,
+html[data-app-theme='zed-dark'] .menu-item:hover .menu-accel {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Flat: no drop shadows on any floating surface under the Zed themes. */
+html[data-app-theme='zed'] .menu-dropdown,
+html[data-app-theme='zed-dark'] .menu-dropdown,
+html[data-app-theme='zed'] #function-menu,
+html[data-app-theme='zed-dark'] #function-menu,
+html[data-app-theme='zed'] .quickopen-panel,
+html[data-app-theme='zed-dark'] .quickopen-panel,
+html[data-app-theme='zed'] .dialog-panel,
+html[data-app-theme='zed-dark'] .dialog-panel,
+html[data-app-theme='zed'] .big-panel,
+html[data-app-theme='zed-dark'] .big-panel,
+html[data-app-theme='zed'] .account-panel,
+html[data-app-theme='zed-dark'] .account-panel,
+html[data-app-theme='zed'] .ext-panel,
+html[data-app-theme='zed-dark'] .ext-panel {
+  box-shadow: var(--shadow);
+}
+
 /* BBEdit Liquid Glass — translucent chrome vars. The frosted look (backdrop
  * blur + wallpaper + specular highlights) is applied in the Liquid Glass
  * section further down; here we just make the surfaces see-through. */
