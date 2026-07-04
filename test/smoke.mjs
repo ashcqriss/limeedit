@@ -154,6 +154,46 @@ try {
   res = await fetch(`${BASE}/api/account`);
   assert.deepEqual(await res.json(), { account: null });
 
+  // backups: none to start
+  res = await fetch(`${BASE}/api/backups`);
+  assert.deepEqual((await res.json()).backups, []);
+
+  // backups: a key + content are required
+  res = await fetch(`${BASE}/api/backup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'file:a.txt' }),
+  });
+  assert.equal(res.status, 400);
+
+  // backups: snapshot a document, then read it back by id
+  res = await fetch(`${BASE}/api/backup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'file:notes.txt', path: 'notes.txt', name: 'notes.txt', content: 'draft one' }),
+  });
+  assert.equal(res.status, 200);
+  res = await fetch(`${BASE}/api/backups`);
+  data = await res.json();
+  assert.equal(data.backups.length, 1);
+  assert.equal(data.backups[0].name, 'notes.txt');
+  assert.equal(data.backups[0].size, 'draft one'.length);
+  res = await fetch(`${BASE}/api/backup?file=${encodeURIComponent(data.backups[0].file)}`);
+  assert.equal((await res.json()).content, 'draft one');
+
+  // backups: a second snapshot of the same key is kept as a distinct entry
+  await fetch(`${BASE}/api/backup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'file:notes.txt', path: 'notes.txt', name: 'notes.txt', content: 'draft two' }),
+  });
+  res = await fetch(`${BASE}/api/backups`);
+  assert.equal((await res.json()).backups.length, 2);
+
+  // backups: a bad id is rejected (no path traversal)
+  res = await fetch(`${BASE}/api/backup?file=../account.json`);
+  assert.equal(res.status, 400);
+
   console.log('✓ all smoke tests passed');
 } finally {
   server.kill();

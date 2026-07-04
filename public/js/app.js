@@ -9,8 +9,12 @@
 import * as texttools from './texttools.js';
 import { scanFunctions } from './functionscanner.js';
 import { ExtensionHost, BUILTIN_EXTENSIONS, compileRawExtension } from './extensions.js';
+import { registerExtraLanguages, FILENAME_LANGUAGE, EXT_LANGUAGE } from './languages.js';
 
 const monaco = await window.monacoReady;
+
+// Register the config/build languages Monaco doesn't bundle (TOML, .env, Make).
+registerExtraLanguages(monaco);
 
 // ---------------------------------------------------------------- themes
 
@@ -223,10 +227,15 @@ function isDirty(doc) {
 function languageForPath(filePath) {
   const name = filePath.split('/').pop().toLowerCase();
   const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
+  // Our own associations first, for files Monaco won't infer on its own.
+  if (FILENAME_LANGUAGE[name]) return FILENAME_LANGUAGE[name];
+  if (name.startsWith('dockerfile')) return 'dockerfile';
+  if (name.startsWith('.env')) return 'dotenv';
   for (const lang of monaco.languages.getLanguages()) {
     if (lang.filenames && lang.filenames.some((f) => f.toLowerCase() === name)) return lang.id;
     if (ext && lang.extensions && lang.extensions.some((e) => e.toLowerCase() === ext)) return lang.id;
   }
+  if (ext && EXT_LANGUAGE[ext]) return EXT_LANGUAGE[ext];
   return 'plaintext';
 }
 
@@ -248,6 +257,7 @@ function createDoc({ path = null, name = null, content = '' }) {
     updateDirtyDot();
     scheduleFunctionScan();
     if (doc.id === state.activeId) scheduleExtContentEmit(model);
+    scheduleBackup(doc);
   });
   state.docs.push(doc);
   return doc;
@@ -715,6 +725,124 @@ function scheduleExtContentEmit(model) {
   clearTimeout(extContentTimer);
   extContentTimer = setTimeout(() => extHost.emitContentChange(model), 250);
 }
+
+// ---------------------------------------------------------------- backups
+// Automatic, silent snapshots of dirty documents to the server, so unsaved work
+// survives a crash, a closed tab, or a reclaimed container. Debounced per edit,
+// with a periodic safety sweep and a minimum interval between snapshots.
+const BACKUP_DEBOUNCE_MS = 4000;
+const BACKUP_MIN_INTERVAL_MS = 15000;
+const backupTimers = new Map(); // doc.id -> timeout
+const lastBackupAt = new Map(); // doc.id -> ms
+
+function backupKeyFor(doc) {
+  return doc.path ? `file:${doc.path}` : `untitled:${doc.name}`;
+}
+
+async function backupDoc(doc) {
+  if (!doc || !isDirty(doc)) return;
+  lastBackupAt.set(doc.id, Date.now());
+  try {
+    await fetch('/api/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: backupKeyFor(doc),
+        path: doc.path,
+        name: doc.name,
+        content: doc.model.getValue(),
+      }),
+    });
+  } catch {
+    /* backups are best-effort; never interrupt editing */
+  }
+}
+
+function scheduleBackup(doc) {
+  clearTimeout(backupTimers.get(doc.id));
+  backupTimers.set(
+    doc.id,
+    setTimeout(() => {
+      const since = Date.now() - (lastBackupAt.get(doc.id) || 0);
+      if (since < BACKUP_MIN_INTERVAL_MS) {
+        scheduleBackup(doc); // too soon — try again after the debounce window
+        return;
+      }
+      backupDoc(doc);
+    }, BACKUP_DEBOUNCE_MS)
+  );
+}
+
+// Safety net: snapshot every dirty document once a minute regardless of typing.
+setInterval(() => {
+  for (const doc of state.docs) {
+    if (isDirty(doc) && Date.now() - (lastBackupAt.get(doc.id) || 0) >= 60000) backupDoc(doc);
+  }
+}, 60000);
+
+async function showBackups() {
+  const list = $('backups-list');
+  list.textContent = 'Loading…';
+  $('backups').classList.remove('hidden');
+  let data;
+  try {
+    data = await (await fetch('/api/backups')).json();
+  } catch {
+    list.textContent = 'Could not load backups.';
+    return;
+  }
+  list.textContent = '';
+  if (!data.backups.length) {
+    const empty = document.createElement('div');
+    empty.className = 'ext-desc';
+    empty.style.padding = '16px';
+    empty.textContent = 'No backups yet. Edited documents are snapshotted here automatically.';
+    list.appendChild(empty);
+    return;
+  }
+  for (const b of data.backups) {
+    const card = document.createElement('div');
+    card.className = 'ext-card';
+    const main = document.createElement('div');
+    main.className = 'ext-main';
+    const title = document.createElement('div');
+    title.className = 'ext-title';
+    title.textContent = b.name || '(untitled)';
+    const desc = document.createElement('div');
+    desc.className = 'ext-desc';
+    desc.textContent = b.path || 'unsaved document';
+    const meta = document.createElement('div');
+    meta.className = 'ext-meta';
+    meta.textContent = `${new Date(b.time).toLocaleString()} · ${b.size.toLocaleString()} chars`;
+    main.append(title, desc, meta);
+    const restore = document.createElement('button');
+    restore.className = 'btn';
+    restore.textContent = 'Restore';
+    restore.addEventListener('click', () => restoreBackup(b));
+    card.append(main, restore);
+    list.appendChild(card);
+  }
+}
+
+async function restoreBackup(b) {
+  try {
+    const meta = await (await fetch(`/api/backup?file=${encodeURIComponent(b.file)}`)).json();
+    // Restore into a NEW document so nothing open is clobbered.
+    const stamp = new Date(meta.time).toLocaleString();
+    const doc = createDoc({ path: null, name: `${meta.name} (backup ${stamp})`, content: meta.content });
+    if (meta.path) monaco.editor.setModelLanguage(doc.model, languageForPath(meta.path));
+    $('backups').classList.add('hidden');
+    activateDoc(doc);
+    statusMessage(`Restored backup of ${meta.name} into a new document`);
+  } catch {
+    statusMessage('Could not restore that backup');
+  }
+}
+
+$('backups-close').addEventListener('click', () => $('backups').classList.add('hidden'));
+$('backups').addEventListener('mousedown', (e) => {
+  if (e.target === $('backups')) $('backups').classList.add('hidden');
+});
 
 function allExtensions() {
   return [...BUILTIN_EXTENSIONS, ...state.rawExtensions];
@@ -1363,6 +1491,8 @@ function menuDefinitions() {
         { label: 'Save', accel: 'Mod+S', action: () => saveDoc(activeDoc()) },
         { label: 'Save As…', accel: 'Shift+Mod+S', action: () => saveDoc(activeDoc(), { saveAs: true }) },
         { sep: true },
+        { label: 'Browse Backups…', action: showBackups },
+        { sep: true },
         { label: 'Close Document', accel: 'Mod+W', action: () => closeDoc(activeDoc()) },
       ],
     },
@@ -1636,7 +1766,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeAllMenus();
     closeFunctionMenu();
-    for (const id of ['extensions', 'account']) {
+    for (const id of ['extensions', 'account', 'backups']) {
       if (!$(id).classList.contains('hidden')) $(id).classList.add('hidden');
     }
     if (!$('ext-panel').classList.contains('hidden')) $('ext-panel').classList.add('hidden');

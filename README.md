@@ -35,8 +35,9 @@ npm start [path-to-workspace]     # defaults to the current directory
 
 **From the vscode editor core (Monaco):**
 
-- Syntax highlighting for ~80 languages, with IntelliSense for
-  JavaScript/TypeScript, CSS, HTML and JSON
+- Syntax highlighting for ~80 bundled languages, with IntelliSense for
+  JavaScript/TypeScript, CSS, HTML and JSON — plus **TOML, dotenv, and
+  Makefiles**, which LimeEdit registers itself (see [Languages](#languages))
 - Multiple cursors, column selection, bracket-pair colorization
 - In-document Find & Replace with regex (`⌘F` / `⌥⌘F`)
 - The Command Palette (`F1`)
@@ -50,7 +51,7 @@ npm start [path-to-workspace]     # defaults to the current directory
 | --- | --- |
 | Currently Open Documents sidebar with dirty-dots | left sidebar |
 | Disk browser | left sidebar |
-| Function popup (jump to function/class/heading) | navigation bar, `ƒ` |
+| Function popup (jump to function/class/heading), 25+ languages | navigation bar, `ƒ` |
 | Multi-File Search with Grep, case & whole-word options | Search ▸ Multi-File Search… (`⇧⌘F`) |
 | Change Case (UPPER / lower / Title / Sentence / tOGGLE) | Text menu |
 | Sort Lines… (descending, case-sensitive, delete duplicates) | Text menu |
@@ -69,6 +70,7 @@ npm start [path-to-workspace]     # defaults to the current directory
 | Extension system with an extension host | Extensions menu (`⇧⌘X`) |
 | Account / sign-in with Settings Sync | Account menu / avatar |
 | Raw mode (plain text, all invisibles) | View ▸ Raw Mode |
+| Automatic backups & restore | File ▸ Browse Backups… |
 
 Text transformations follow BBEdit's rule: they apply to the **selection** if
 there is one, otherwise to the **entire document**, and every one of them is
@@ -213,6 +215,39 @@ it (or toggle the menu item) to return to the document's normal language and
 view. Switching languages is remembered, so leaving raw mode restores the
 original highlighting.
 
+## Languages
+
+Monaco bundles ~80 languages, and LimeEdit uses all of them. On top of that it:
+
+- **Registers formats Monaco leaves out** — **TOML** (`Cargo.toml`,
+  `pyproject.toml`), **dotenv** (`.env`), and **Makefiles** get real Monarch
+  grammars, so they highlight instead of falling back to plain text.
+- **Associates more files with the right mode** — Dockerfiles, `.mjs`/`.cjs`,
+  Terraform (`.tf`), `tsconfig.json`, dotfiles like `.gitignore`/`.npmrc`,
+  `.gradle`, and more map to a sensible language.
+- **Feeds the function popup for 25+ languages** — beyond the original set, the
+  `ƒ` popup now finds functions/types in Swift, Kotlin, Scala, Dart, Lua, Perl,
+  R, Julia, Elixir, PowerShell, SQL, YAML, TOML, INI, Visual Basic and more.
+
+You can always override the detected language from the status bar, and any file
+opens regardless — worst case it's plain text.
+
+## Backups
+
+LimeEdit snapshots your edited documents automatically, so unsaved work survives
+a crash, an accidentally closed tab, or a reclaimed container. Backups are
+**silent and server-side**, stored under `.limeedit-data/backups/` (outside your
+workspace), and taken on a short debounce after you stop typing plus a
+once-a-minute safety sweep of every dirty document. The most recent 25 snapshots
+per document (and 400 overall) are kept; older ones are pruned.
+
+![The Backups browser](docs/screenshot-backups.png)
+
+Open **File ▸ Browse Backups…** to see every snapshot with its document, time,
+and size. **Restore** opens the snapshot into a *new* document, so recovering a
+backup never overwrites anything you have open — you decide whether to save over
+the original. Both saved files and untitled drafts are backed up.
+
 ### Smooth animations
 
 LimeEdit brings VS Code's polished, animated feel to both layers. In the editor
@@ -231,18 +266,20 @@ it automatically stands down when the operating system requests
 ```
 server.js            Express server: static frontend, Monaco assets, a small
                      file API (tree/read/write/search/quick-open) sandboxed to
-                     the workspace root, and the account/settings-sync API
+                     the workspace root, plus the account/settings-sync and
+                     backup APIs
 public/
   index.html         Menu bar · sidebar · navigation bar · editor · status bar
-  css/limeedit.css   BBEdit-style chrome, light + dark, animations
+  css/limeedit.css   BBEdit-style chrome, light + dark, glass, animations
   js/app.js          Documents, menus, dialogs, search, quick open, status bar,
-                     extension host wiring, account, raw mode
+                     extension host wiring, account, raw mode, backups
   js/texttools.js    The Text menu transformations
   js/functionscanner.js  Regex scanners feeding the function popup
   js/extensions.js   The extension host, built-in extensions, raw-install
+  js/languages.js    Extra language grammars (TOML/dotenv/Make) + associations
 ```
 
-The account and any synced settings are stored server-side under
+The account, synced settings, and backups are stored server-side under
 `.limeedit-data/` (gitignored), never in your workspace; `LIMEEDIT_DATA`
 overrides the location.
 
@@ -257,8 +294,9 @@ npm test
 ```
 
 Boots the server against a temp workspace and exercises every API endpoint
-(files, search, quick-open, and the account/settings-sync lifecycle), the
-path-traversal guard, and the static Monaco and extension routes.
+(files, search, quick-open, the account/settings-sync lifecycle, and the
+backup snapshot/restore/prune flow), the path-traversal guards, and the static
+Monaco and extension routes.
 
 ## License
 

@@ -44,6 +44,48 @@ const SCANNERS = {
   css: [{ re: /^([.#]?[\w-]+(?:\s*[,>+~]\s*[.#]?[\w-]+)*)\s*\{/, kind: 'rule' }],
   markdown: [{ re: /^(#{1,6})\s+(.*)/, kind: 'heading', group: 2 }],
   shell: [{ re: /^\s*(?:function\s+)?([A-Za-z_]\w*)\s*\(\)\s*\{?/, kind: 'function' }],
+  swift: [
+    { re: /^\s*(?:public\s+|private\s+|internal\s+|fileprivate\s+|open\s+|final\s+|static\s+|class\s+|override\s+|mutating\s+)*func\s+([A-Za-z_]\w*)/, kind: 'func' },
+    { re: /^\s*(?:public\s+|private\s+|final\s+|open\s+)*(?:class|struct|enum|protocol|extension|actor)\s+([A-Za-z_]\w*)/, kind: 'type' },
+  ],
+  kotlin: [
+    { re: /^\s*(?:public\s+|private\s+|internal\s+|protected\s+|override\s+|open\s+|suspend\s+|inline\s+)*fun\s+(?:<[^>]*>\s*)?([A-Za-z_]\w*)/, kind: 'fun' },
+    { re: /^\s*(?:public\s+|private\s+|sealed\s+|data\s+|abstract\s+|open\s+)*(?:class|interface|object|enum\s+class)\s+([A-Za-z_]\w*)/, kind: 'class' },
+  ],
+  scala: [
+    { re: /^\s*(?:override\s+|final\s+|private\s+|protected\s+)*def\s+([A-Za-z_]\w*)/, kind: 'def' },
+    { re: /^\s*(?:sealed\s+|final\s+|abstract\s+|case\s+)*(?:class|object|trait)\s+([A-Za-z_]\w*)/, kind: 'type' },
+  ],
+  dart: [
+    { re: /^\s*(?:[\w<>,?[\] ]+\s+)?([A-Za-z_]\w*)\s*\([^;{]*\)\s*(?:async\s*)?\{/, kind: 'method' },
+    { re: /^\s*(?:abstract\s+)?(?:class|mixin|enum|extension)\s+([A-Za-z_]\w*)/, kind: 'class' },
+  ],
+  lua: [
+    { re: /^\s*(?:local\s+)?function\s+([\w.:]+)/, kind: 'function' },
+    { re: /^\s*([\w.]+)\s*=\s*function\b/, kind: 'function' },
+  ],
+  perl: [{ re: /^\s*sub\s+([A-Za-z_]\w*)/, kind: 'sub' }, { re: /^\s*package\s+([\w:]+)/, kind: 'package' }],
+  r: [{ re: /^\s*([A-Za-z._][\w.]*)\s*(?:<-|=)\s*function\b/, kind: 'function' }],
+  julia: [
+    { re: /^\s*function\s+([\w.!]+)/, kind: 'function' },
+    { re: /^\s*(?:mutable\s+)?struct\s+([A-Za-z_]\w*)/, kind: 'struct' },
+    { re: /^\s*(?:module|macro)\s+([A-Za-z_]\w*)/, kind: 'module' },
+  ],
+  elixir: [
+    { re: /^\s*def(?:p|macro|module)?\s+([A-Za-z_]\w*[?!]?)/, kind: 'def' },
+    { re: /^\s*defmodule\s+([\w.]+)/, kind: 'module' },
+  ],
+  powershell: [{ re: /^\s*function\s+([\w-]+)/i, kind: 'function' }, { re: /^\s*class\s+([A-Za-z_]\w*)/, kind: 'class' }],
+  sql: [
+    { re: /^\s*(?:create|alter)\s+(?:or\s+replace\s+)?(?:table|view|function|procedure|trigger|index)\s+(?:if\s+not\s+exists\s+)?[`"[]?([\w.]+)/i, kind: 'object' },
+  ],
+  yaml: [{ re: /^([A-Za-z_][\w-]*):\s*(?:$|[#&*!|>].*$)/, kind: 'key' }],
+  toml: [{ re: /^\s*\[\[?([\w.\- "]+)\]\]?/, kind: 'table' }],
+  ini: [{ re: /^\s*\[([^\]]+)\]/, kind: 'section' }],
+  vb: [
+    { re: /^\s*(?:Public\s+|Private\s+|Friend\s+|Protected\s+|Shared\s+)*(?:Sub|Function)\s+([A-Za-z_]\w*)/i, kind: 'method' },
+    { re: /^\s*(?:Public\s+|Private\s+)*(?:Class|Module|Structure|Interface)\s+([A-Za-z_]\w*)/i, kind: 'type' },
+  ],
 };
 
 const LANGUAGE_FAMILY = {
@@ -59,13 +101,33 @@ const LANGUAGE_FAMILY = {
   rust: 'rust',
   php: 'php',
   java: 'java',
-  kotlin: 'java',
-  swift: 'go',
+  kotlin: 'kotlin',
+  swift: 'swift',
+  scala: 'scala',
+  dart: 'dart',
+  lua: 'lua',
+  perl: 'perl',
+  r: 'r',
+  julia: 'julia',
+  elixir: 'elixir',
+  powershell: 'powershell',
+  sql: 'sql',
+  mysql: 'sql',
+  pgsql: 'sql',
+  redshift: 'sql',
+  yaml: 'yaml',
+  toml: 'toml',
+  ini: 'ini',
+  vb: 'vb',
+  solidity: 'clike',
+  cypher: 'clike',
   css: 'css',
   scss: 'css',
   less: 'css',
   markdown: 'markdown',
+  mdx: 'markdown',
   shell: 'shell',
+  bat: 'shell',
 };
 
 /**

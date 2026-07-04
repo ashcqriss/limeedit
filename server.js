@@ -261,6 +261,94 @@ function avatarColor(name) {
   return `hsl(${hash % 360}, 55%, 45%)`;
 }
 
+// ---------------------------------------------------------------- backups
+// Automatic snapshots of open documents, stored server-side (outside the
+// workspace). Each backup is one JSON file; we keep the most recent
+// BACKUPS_PER_KEY per document and BACKUPS_TOTAL overall.
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+const BACKUPS_PER_KEY = 25;
+const BACKUPS_TOTAL = 400;
+
+function sanitizeKey(key) {
+  return String(key).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120) || 'untitled';
+}
+
+async function listBackupFiles() {
+  try {
+    const names = await fsp.readdir(BACKUP_DIR);
+    return names.filter((n) => n.endsWith('.bak.json'));
+  } catch {
+    return [];
+  }
+}
+
+app.post('/api/backup', async (req, res) => {
+  try {
+    const { key, path: docPath = null, name = 'untitled', content } = req.body || {};
+    if (typeof key !== 'string' || !key || typeof content !== 'string') {
+      return res.status(400).json({ error: 'Expected { key, content }' });
+    }
+    await fsp.mkdir(BACKUP_DIR, { recursive: true });
+    const safe = sanitizeKey(key);
+    const time = Date.now();
+    const file = `${safe}__${time}.bak.json`;
+    await fsp.writeFile(
+      path.join(BACKUP_DIR, file),
+      JSON.stringify({ key, path: docPath, name, content, time }),
+      'utf8'
+    );
+
+    // Prune: keep newest BACKUPS_PER_KEY for this key, then a global cap.
+    const files = await listBackupFiles();
+    const mine = files.filter((f) => f.startsWith(safe + '__')).sort().reverse();
+    for (const stale of mine.slice(BACKUPS_PER_KEY)) {
+      await fsp.rm(path.join(BACKUP_DIR, stale), { force: true });
+    }
+    const all = (await listBackupFiles()).sort().reverse();
+    for (const stale of all.slice(BACKUPS_TOTAL)) {
+      await fsp.rm(path.join(BACKUP_DIR, stale), { force: true });
+    }
+    res.json({ ok: true, time });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/backups', async (_req, res) => {
+  const files = await listBackupFiles();
+  const entries = [];
+  for (const file of files) {
+    try {
+      const meta = JSON.parse(await fsp.readFile(path.join(BACKUP_DIR, file), 'utf8'));
+      entries.push({
+        file,
+        key: meta.key,
+        path: meta.path,
+        name: meta.name,
+        time: meta.time,
+        size: (meta.content || '').length,
+      });
+    } catch {
+      /* skip corrupt backup */
+    }
+  }
+  entries.sort((a, b) => b.time - a.time);
+  res.json({ backups: entries });
+});
+
+app.get('/api/backup', async (req, res) => {
+  const file = String(req.query.file || '');
+  if (!/^[A-Za-z0-9._-]+\.bak\.json$/.test(file)) {
+    return res.status(400).json({ error: 'Bad backup id' });
+  }
+  try {
+    const meta = JSON.parse(await fsp.readFile(path.join(BACKUP_DIR, file), 'utf8'));
+    res.json(meta);
+  } catch {
+    res.status(404).json({ error: 'Backup not found' });
+  }
+});
+
 // ---------------------------------------------------------------- static assets
 // Monaco — the editor of microsoft/vscode — served straight from the npm package.
 app.use('/vs', express.static(path.join(__dirname, 'node_modules', 'monaco-editor', 'min', 'vs')));
