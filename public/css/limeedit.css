@@ -43,6 +43,52 @@ html[data-theme='dark'] {
   --match-bg: #5a4d00;
 }
 
+/* Zed's identity, brought to the chrome. These layer on top of the light/dark
+ * base via data-app-theme, so only the palette differs — not the layout. */
+html[data-app-theme='zed-one-dark'] {
+  --chrome-bg: #2f343d;
+  --chrome-bg-grad: linear-gradient(#363b45, #2b2f37);
+  --chrome-border: #21252b;
+  --chrome-text: #abb2bf;
+  --chrome-text-dim: #6b727d;
+  --sidebar-bg: #23272e;
+  --sidebar-selected: #2f3540;
+  --sidebar-active: #3b4351;
+  --editor-bg: #282c34;
+  --accent: #61afef;
+  --accent-dark: #4d8fd6;
+  --dirty: #abb2bf;
+  --menu-bg: #2f343d;
+  --menu-hover: #3d6fb4;
+  --menu-hover-text: #fff;
+  --panel-bg: #23272e;
+  --input-bg: #1f2329;
+  --input-border: #3a4048;
+  --match-bg: #4b5263;
+}
+
+html[data-app-theme='zed-one-light'] {
+  --chrome-bg: #eaeaeb;
+  --chrome-bg-grad: linear-gradient(#f3f3f3, #e6e6e7);
+  --chrome-border: #cfcfd1;
+  --chrome-text: #383a42;
+  --chrome-text-dim: #8a8b91;
+  --sidebar-bg: #eeeef0;
+  --sidebar-selected: #dcdde0;
+  --sidebar-active: #cdd3e6;
+  --editor-bg: #fafafa;
+  --accent: #4078f2;
+  --accent-dark: #2f5fd0;
+  --dirty: #383a42;
+  --menu-bg: #fbfbfc;
+  --menu-hover: #4078f2;
+  --menu-hover-text: #fff;
+  --panel-bg: #f1f1f2;
+  --input-bg: #ffffff;
+  --input-border: #c9c9cc;
+  --match-bg: #f6e6a8;
+}
+
 * { box-sizing: border-box; }
 
 html, body {

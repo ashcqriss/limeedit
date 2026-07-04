@@ -58,6 +58,7 @@ npm start [path-to-workspace]     # defaults to the current directory
 | Soft-wrap toggle, Show Invisibles | View menu / navigation bar |
 | Line-ending (LF/CRLF), language mode & tab-width switchers | status bar |
 | Light & dark chrome | View ▸ Dark Mode |
+| Zed "One" color themes | View ▸ Color Theme… (`⌘K ⌘T`) |
 | Smooth animations (editor + UI) | View ▸ Smooth Animations |
 | Extension system with an extension host | Extensions menu (`⇧⌘X`) |
 | Account / sign-in with Settings Sync | Account menu / avatar |
@@ -81,6 +82,33 @@ subsystems, not part of the editor. LimeEdit provides its own local
 implementations of several of them — an [extension system](#extensions), an
 [account with Settings Sync](#account--settings-sync), and a
 [raw mode](#raw-mode) — rather than pretend they come for free.
+
+## What about Zed?
+
+A fair question — Zed is a lovely editor. But Zed can't play Monaco's role here.
+Monaco exists precisely because Microsoft factored VS Code's editor into a
+browser-embeddable library; that's what lets LimeEdit run a real editor in a web
+page with no build step. [Zed](https://github.com/zed-industries/zed) is a
+**native** editor written in Rust on its own GPU framework (GPUI) — there is no
+web-embeddable "Zed editor core" to drop in. Swapping the engine to Zed would
+mean rewriting LimeEdit as a native Rust/GPUI application: a different project
+entirely.
+
+What we *can* borrow from Zed is its **identity**, and LimeEdit does:
+
+- **Zed's "One" color themes** — the signature One Dark and One Light palettes,
+  applied to both the editor (via Monaco token themes) and the surrounding
+  chrome. Pick them from **View ▸ Color Theme…** or the VS Code chord `⌘K ⌘T`.
+- **Zed / VS Code keymap muscle memory** — `⌘⇧P` opens the command palette,
+  `⌘P` is the fuzzy file finder, `⇧⌘F` is project-wide search.
+
+![Zed — One Dark](docs/screenshot-zed-one-dark.png)
+
+![Zed — One Light](docs/screenshot-zed-one-light.png)
+
+Themes are chosen from a registry, remembered across sessions, and included in
+[Settings Sync](#account--settings-sync). The **Dark Mode** toggle flips within
+the current theme family (e.g. One Light ⇄ One Dark).
 
 ## Extensions
 

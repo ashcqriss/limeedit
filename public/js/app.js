@@ -47,6 +47,52 @@ monaco.editor.defineTheme('lime-dark', {
   },
 });
 
+// Zed's identity: the "One" themes. Zed itself is a native Rust editor and has
+// no web-embeddable core, so we can't run its engine here — but we can dress
+// Monaco in Zed's signature One Dark / One Light palettes.
+monaco.editor.defineTheme('zed-one-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '5c6370', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'c678dd' },
+    { token: 'string', foreground: '98c379' },
+    { token: 'number', foreground: 'd19a66' },
+    { token: 'type', foreground: 'e5c07b' },
+    { token: 'delimiter', foreground: 'abb2bf' },
+    { token: 'operator', foreground: '56b6c2' },
+  ],
+  colors: {
+    'editor.background': '#282c34',
+    'editor.foreground': '#abb2bf',
+    'editor.lineHighlightBackground': '#2c313a',
+    'editorLineNumber.foreground': '#4b5263',
+    'editorCursor.foreground': '#528bff',
+    'editor.selectionBackground': '#3e4451',
+  },
+});
+
+monaco.editor.defineTheme('zed-one-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: 'a0a1a7', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'a626a4' },
+    { token: 'string', foreground: '50a14f' },
+    { token: 'number', foreground: '986801' },
+    { token: 'type', foreground: 'c18401' },
+    { token: 'operator', foreground: '0184bc' },
+  ],
+  colors: {
+    'editor.background': '#fafafa',
+    'editor.foreground': '#383a42',
+    'editor.lineHighlightBackground': '#f0f0f0',
+    'editorLineNumber.foreground': '#9d9d9f',
+    'editorCursor.foreground': '#526fff',
+    'editor.selectionBackground': '#e5e5e6',
+  },
+});
+
 // ---------------------------------------------------------------- state
 
 const state = {
@@ -76,14 +122,29 @@ function loadEnabledExtensions() {
   return { 'limeedit.word-count': true, 'limeedit.reading-time': true };
 }
 
+// Theme registry. `base` drives the light/dark chrome fallback (data-theme);
+// `id` drives the specific chrome overrides (data-app-theme); `monaco` is the
+// editor theme; `sibling` is what the Dark Mode toggle flips to.
+const THEMES = {
+  light: { id: 'light', label: 'LimeEdit Light', base: 'light', monaco: 'lime-light', sibling: 'dark' },
+  dark: { id: 'dark', label: 'LimeEdit Dark', base: 'dark', monaco: 'lime-dark', sibling: 'light' },
+  'zed-one-dark': { id: 'zed-one-dark', label: 'Zed — One Dark', base: 'dark', monaco: 'zed-one-dark', sibling: 'zed-one-light' },
+  'zed-one-light': { id: 'zed-one-light', label: 'Zed — One Light', base: 'light', monaco: 'zed-one-light', sibling: 'zed-one-dark' },
+};
+
+function themeFor(id) {
+  return THEMES[id] || THEMES.light;
+}
+
 const $ = (id) => document.getElementById(id);
 
-document.documentElement.dataset.theme = state.theme;
+document.documentElement.dataset.theme = themeFor(state.theme).base;
+document.documentElement.dataset.appTheme = themeFor(state.theme).id;
 document.documentElement.classList.toggle('no-motion', !state.animations);
 
 const editor = monaco.editor.create($('editor'), {
   model: null,
-  theme: state.theme === 'dark' ? 'lime-dark' : 'lime-light',
+  theme: themeFor(state.theme).monaco,
   fontFamily: "'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
   fontSize: 13,
   lineHeight: 19,
@@ -808,12 +869,7 @@ function applySyncedSettings(s) {
   if (!s || typeof s !== 'object') return;
   const unset = (key) => localStorage.getItem(key) === null;
 
-  if (s.theme && unset('limeedit.theme')) {
-    state.theme = s.theme;
-    localStorage.setItem('limeedit.theme', s.theme);
-    document.documentElement.dataset.theme = s.theme;
-    monaco.editor.setTheme(s.theme === 'dark' ? 'lime-dark' : 'lime-light');
-  }
+  if (s.theme && unset('limeedit.theme')) applyTheme(s.theme);
   if (typeof s.animations === 'boolean' && unset('limeedit.animations')) setAnimations(s.animations);
   if (typeof s.softWrap === 'boolean' && unset('limeedit.softWrap')) setSoftWrap(s.softWrap);
   if (s.tabWidth && unset('limeedit.tabWidth')) {
@@ -1232,7 +1288,7 @@ const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const MOD = isMac ? '⌘' : 'Ctrl+';
 
 function accel(str) {
-  return str.replace('Mod+', MOD).replace('Shift+', isMac ? '⇧' : 'Shift+').replace('Alt+', isMac ? '⌥' : 'Alt+');
+  return str.replaceAll('Mod+', MOD).replaceAll('Shift+', isMac ? '⇧' : 'Shift+').replaceAll('Alt+', isMac ? '⌥' : 'Alt+');
 }
 
 function editorAction(id) {
@@ -1339,7 +1395,8 @@ function menuDefinitions() {
         { label: 'Toggle Sidebar', accel: 'Mod+0', action: toggleSidebar },
         { sep: true },
         { label: 'Smooth Animations', checked: state.animations, action: () => setAnimations(!state.animations) },
-        { label: 'Dark Mode', checked: state.theme === 'dark', action: toggleTheme },
+        { label: 'Color Theme…', accel: 'Mod+K Mod+T', action: pickColorTheme },
+        { label: 'Dark Mode', checked: themeFor(state.theme).base === 'dark', action: toggleTheme },
       ],
     },
     {
@@ -1348,7 +1405,7 @@ function menuDefinitions() {
         { label: 'Manage Extensions…', accel: 'Shift+Mod+X', action: showExtensions },
         { label: 'Install from Source…', action: installRawExtension },
         { sep: true },
-        { label: 'Command Palette (incl. extension commands)…', accel: 'F1', action: editorAction('editor.action.quickCommand') },
+        { label: 'Command Palette (incl. extension commands)…', accel: 'Shift+Mod+P', action: editorAction('editor.action.quickCommand') },
       ],
     },
     {
@@ -1484,12 +1541,28 @@ function toggleSidebar() {
   sidebar.style.display = sidebar.style.display === 'none' ? '' : 'none';
 }
 
+// Switch to a specific theme by id (from the registry).
+function applyTheme(id, { silent = false } = {}) {
+  const t = themeFor(id);
+  state.theme = t.id;
+  localStorage.setItem('limeedit.theme', t.id);
+  document.documentElement.dataset.theme = t.base;
+  document.documentElement.dataset.appTheme = t.id;
+  monaco.editor.setTheme(t.monaco);
+  if (!silent) rebuildMenus();
+}
+
+// Dark Mode toggle: flip to the current theme's light/dark sibling.
 function toggleTheme() {
-  state.theme = state.theme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('limeedit.theme', state.theme);
-  document.documentElement.dataset.theme = state.theme;
-  monaco.editor.setTheme(state.theme === 'dark' ? 'lime-dark' : 'lime-light');
-  rebuildMenus();
+  applyTheme(themeFor(state.theme).sibling);
+}
+
+async function pickColorTheme() {
+  const options = Object.values(THEMES).map((t) => ({ value: t.id, label: t.label }));
+  const result = await showDialog('Color Theme', [
+    { type: 'select', name: 'theme', label: 'Choose a color theme:', options, value: state.theme },
+  ]);
+  if (result) applyTheme(result.theme);
 }
 
 function setAnimations(on) {
@@ -1526,12 +1599,27 @@ document.addEventListener('keydown', (e) => {
   if (!mod) return;
   const key = e.key.toLowerCase();
   if (key === 'n' && !e.shiftKey && !e.altKey) { e.preventDefault(); newDocument(); }
+  else if (key === 'p' && e.shiftKey && !e.altKey) { e.preventDefault(); editor.focus(); editor.getAction('editor.action.quickCommand')?.run(); } // Zed/VS Code palette
   else if (key === 'p' && !e.shiftKey && !e.altKey) { e.preventDefault(); showQuickOpen(); }
   else if (key === 's' && !e.altKey) { e.preventDefault(); saveDoc(activeDoc(), { saveAs: e.shiftKey }); }
   else if (key === 'w' && !e.shiftKey && !e.altKey) { e.preventDefault(); closeDoc(activeDoc()); }
   else if (key === 'f' && e.shiftKey && !e.altKey) { e.preventDefault(); toggleSearchDrawer(true); }
   else if (key === 'x' && e.shiftKey && !e.altKey) { e.preventDefault(); showExtensions(); }
   else if (key === '0' && !e.shiftKey && !e.altKey) { e.preventDefault(); toggleSidebar(); }
+});
+
+// Color Theme picker as a Monaco action, so the VS Code chord (⌘K ⌘T) works
+// reliably even with the editor focused, and it appears in the F1 palette.
+editor.addAction({
+  id: 'limeedit.colorTheme',
+  label: 'Preferences: Color Theme',
+  keybindings: [
+    monaco.KeyMod.chord(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyT
+    ),
+  ],
+  run: () => pickColorTheme(),
 });
 
 window.addEventListener('beforeunload', (e) => {
