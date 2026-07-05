@@ -16,16 +16,18 @@
  * A miniature of Arch Linux's pacman: a package database you can query,
  * install into, and remove from. Purely in-memory.                         */
 const Pacman = (() => {
-  const repo = {
-    firefox: '124.0', 'block-browser': '1.0', neovim: '0.9.5', git: '2.44.0',
-    htop: '3.3.0', 'base-devel': '1.0', python: '3.12.2', nodejs: '21.7.1',
-    cowsay: '3.04', fortune: '1.0', sl: '5.05', neofetch: '7.1.0',
-    'block-doom': '1.9', cmatrix: '2.0', hyprland: '0.39',
+  const repo = {                                   // newest Arch versions
+    firefox: '135.0', 'block-browser': '1.0', neovim: '0.10.4', git: '2.48.1',
+    htop: '3.4.0', 'base-devel': '1.0', python: '3.13.2', nodejs: '23.9.0',
+    cowsay: '3.7.0', fortune: '3.20', sl: '5.05', neofetch: '7.1.0',
+    'block-doom': '1.9', cmatrix: '2.0', hyprland: '0.47', gimp: '2.10.38',
   };
+  // Packages that ship a graphical binary → run on the Linux (Arch) kernel.
+  const guiApps = new Set(['firefox', 'block-browser', 'gimp', 'neovim', 'block-doom', 'hyprland']);
   const installed = new Map([
-    ['base', '1.0'], ['linux-block', '6.9.0'], ['limesh', '1.0'],
-    ['pacman', '6.1.0'], ['block9', '9.2.2'], ['neofetch', '7.1.0'],
-    ['coreutils', '9.5'], ['dosbox-verbs', '1.0'],
+    ['base', '1.0'], ['linux', '6.14.2-arch1'], ['limesh', '1.0'],
+    ['pacman', '7.0.0'], ['block9', '9.2.2'], ['neofetch', '7.1.0'],
+    ['coreutils', '9.6'], ['dosemu-verbs', '2.0'], ['limawek', '1.0'],
   ]);
   return {
     count: () => installed.size,
@@ -33,6 +35,7 @@ const Pacman = (() => {
     list: () => [...installed.entries()],
     inRepo: (n) => n in repo,
     repoVersion: (n) => repo[n],
+    isGui: (n) => guiApps.has(n),
     install(n) { if (!(n in repo)) return null; installed.set(n, repo[n]); return repo[n]; },
     remove(n) { return installed.delete(n); },
     search(q) { return Object.keys(repo).filter((k) => k.includes(q)); },
@@ -104,14 +107,22 @@ const Commands = (() => {
 
   // ---- long-form help sections ----------------------------------------
   const CATS = {
+    'Hybrid kernel & LIMAWEK': ['kernel', 'limawek', 'dos', 'run'],
     'File & system (modern)': ['ls', 'cd', 'pwd', 'cat', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'tree', 'grep', 'find', 'echo', 'clear', 'uname', 'whoami', 'date', 'uptime', 'ps', 'kill', 'free', 'df', 'history', 'man', 'env', 'alias'],
-    'MS-DOS verbs': ['dir', 'cls', 'type', 'copy', 'del', 'ren', 'ver', 'mem', 'md', 'rd', 'chdir', 'time', 'prompt', 'path'],
+    'MS-DOS verbs (→ real-mode)': ['dir', 'cls', 'type', 'copy', 'del', 'ren', 'ver', 'mem', 'md', 'rd', 'chdir', 'time', 'prompt', 'path'],
     'PowerShell': ['get-childitem', 'get-content', 'set-location', 'get-location', 'write-host', 'get-process', 'get-date', 'get-command', 'get-help', 'clear-host', 'new-item', 'remove-item', '$psversiontable'],
     'Package manager (pacman)': ['pacman', 'apt'],
     'GUI & apps': ['apps', 'open', 'gui', 'fallback-gui', 'browser', 'theme', 'wallpaper'],
     'Fun': ['neofetch', 'cowsay', 'fortune', 'ascii', 'figlet', 'matrix', 'sl', 'lolcat', 'coffee', 'sudo'],
     'Power user': ['code', 'js', 'reboot', 'shutdown', 'exit'],
   };
+
+  // ---- which kernel personality each command's ABI needs --------------
+  // DOS verbs pull the hybrid kernel into real-mode; everything else runs on
+  // the Linux (Arch) personality. LIMAWEK reads this to arbitrate.
+  const DOS_ABI = new Set(['dir', 'cls', 'type', 'copy', 'del', 'erase', 'ren', 'rename',
+    'ver', 'mem', 'md', 'rd', 'rmdir', 'chdir', 'time', 'prompt', 'path', 'format']);
+  const abiOf = (name) => (DOS_ABI.has(name) ? 'dos' : 'linux');
 
   // ====================================================================
   //  Command table
@@ -274,16 +285,20 @@ const Commands = (() => {
     else ctx.print(s.name);
   });
   def(['whoami'], 'Print the current user.', (ctx) => ctx.print(Kernel.system.user));
-  def(['ver'], 'Print the OS version (DOS).', (ctx) =>
-    ctx.print('\nLIMEdit BLOCK [Version ' + Kernel.system.version + ' — archdos hybrid]\n'));
+  def(['ver'], 'Print the OS version (DOS).', (ctx) => {
+    // DOS VER prints the real-mode personality banner.
+    const p = Kernel.personalities.dos;
+    ctx.print('\nMS-DOS Version ' + p.version + '  (LIMEdit BLOCK real-mode personality)\n' +
+              'Hybrid kernel archdos-hybrid 1.0 — arbitrated by LIMAWEK\n');
+  });
   def(['date', 'time', 'get-date'], 'Print the date and time.', (ctx) => ctx.print(new Date().toString()));
   def('uptime', 'Show how long the system has been up.', (ctx) =>
     ctx.print(' up ' + Kernel.uptime() + ',  1 user,  load average: 0.09, 0.12, 0.07'));
 
   def(['ps', 'get-process', 'gps'], 'List running processes.', (ctx) => {
-    ctx.print('  PID  %CPU   MEM  COMMAND');
+    ctx.print('  PID  %CPU   MEM  ABI     COMMAND');
     for (const p of Kernel.processes)
-      ctx.print(pad(String(p.pid), 5) + pad(p.cpu.toFixed(1), 6) + pad(p.mem + 'M', 6) + ' ' + p.name);
+      ctx.print(pad(String(p.pid), 5) + pad(p.cpu.toFixed(1), 6) + pad(p.mem + 'M', 6) + pad(p.abi || 'linux', 8) + p.name);
   });
   def(['kill', 'stop-process'], 'Kill a process by PID.', (ctx, a) => {
     const pid = Number(a.find((x) => /^\d+$/.test(x)));
@@ -340,7 +355,9 @@ const Commands = (() => {
         ctx.print('resolving dependencies...');
         ctx.print('(1/1) installing ' + n + '  [' + '#'.repeat(20) + '] 100%');
         const v = Pacman.install(n);
-        ctx.print(':: ' + n + '-' + v + ' installed. Run `open ' + n + '` if it has a GUI.', 'accent');
+        const hint = Pacman.isGui(n) ? 'Run `run ' + n + '` — LIMAWEK will service it on the Linux (Arch) kernel.'
+                                     : 'Installed into the Arch userland.';
+        ctx.print(':: ' + n + '-' + v + ' installed. ' + hint, 'accent');
       }
       return;
     }
@@ -367,6 +384,81 @@ const Commands = (() => {
     else if (verb === 'update' || verb === 'upgrade') cmds.pacman.run(ctx, ['-Syu']);
     else if (verb === 'search') cmds.pacman.run(ctx, ['-Ss', ...a.slice(1)]);
     else ctx.print('usage: apt install|remove|update|search <pkg>', 'dim');
+  });
+
+  // ---------------- hybrid kernel & LIMAWEK ----------------------------
+  def(['kernel', 'lsmod'], 'Inspect the hybrid kernel.', (ctx) => {
+    const p = Kernel.LIMAWEK.personality();
+    ctx.print('LIMEdit BLOCK — hybrid kernel  (archdos-hybrid 1.0)', 'accent');
+    ctx.print('  active personality : ' + p.name + '  ' + p.version + '  [' + p.cpu + ']');
+    ctx.print('  source             : ' + p.src);
+    ctx.print('  role               : ' + p.note);
+    ctx.print('');
+    ctx.print('  Personalities managed by LIMAWEK:', 'accent');
+    for (const key of ['dos', 'linux']) {
+      const pp = Kernel.personalities[key];
+      const on = Kernel.LIMAWEK.mode() === key ? '● live' : '○     ';
+      ctx.print('   ' + on + '  ' + pad(pp.name, 20) + pp.version + '   — ' + pp.src);
+    }
+    ctx.print('\n  A DOS verb (DIR, TYPE, VER…) pulls the kernel to real-mode;', 'dim');
+    ctx.print('  a Linux app or verb pulls it to the Arch kernel. `limawek log` shows switches.', 'dim');
+  });
+  def(['limawek', 'lima'], 'The kernel arbiter — status/log/mode control.', (ctx, a) => {
+    const sub = (a[0] || 'status').toLowerCase();
+    if (sub === 'status') { ctx.print(Kernel.LIMAWEK.status(), 'accent'); return; }
+    if (sub === 'log') {
+      const log = Kernel.LIMAWEK.log();
+      if (!log.length) return ctx.print('limawek: no kernel transitions yet — run a DOS verb then a Linux one.', 'dim');
+      log.forEach((e, i) => ctx.print(pad('#' + (i + 1), 5) + e.from + ' → ' + e.to + '   (' + e.workload + ')'));
+      return;
+    }
+    if (sub === 'mode') {
+      const m = (a[1] || '').toLowerCase();
+      if (m !== 'dos' && m !== 'linux') return ctx.print('usage: limawek mode <dos|linux>', 'err');
+      const line = Kernel.LIMAWEK.require(m, 'limawek');
+      ctx.print(line || ('already on ' + m + ' personality.'), 'kmsg');
+      return;
+    }
+    ctx.print('usage: limawek [status|log|mode <dos|linux>]', 'dim');
+  }, { usage: 'limawek status | log | mode <dos|linux>' });
+  def(['run', 'exec', 'launch'], 'Run a third-party Linux application on the Arch kernel.', (ctx, a) => {
+    const app = (a[0] || '').toLowerCase();
+    if (!app) return ctx.print('usage: run <installed-app>   e.g.  run firefox', 'err');
+    if (!Pacman.isInstalled(app)) {
+      ctx.print('run: ' + app + ': not installed. Try `pacman -S ' + app + '`.', 'err');
+      return;
+    }
+    // Third-party apps require the Linux kernel — LIMAWEK loads it.
+    const line = Kernel.LIMAWEK.require('linux', app);
+    if (line) ctx.print(line, 'kmsg');
+    ctx.print('kernel: loading ELF binary /usr/bin/' + app + ' against linux ' + Kernel.personalities.linux.version + ' …', 'dim');
+    const proc = Kernel.spawn(app, 40 + Math.floor(Math.random() * 60), 'linux');
+    ctx.print('[' + proc.pid + '] ' + app + ' running on the Linux (Arch) kernel.', 'accent');
+    // Give it a window if it maps to a known GUI app.
+    const winApp = ({ firefox: 'browser', 'block-browser': 'browser', gimp: 'editor', neovim: 'editor', 'block-doom': 'about' })[app];
+    if (Pacman.isGui(app)) ctx.gui.openApp(winApp || 'about', { procName: app, pid: proc.pid });
+  }, { usage: 'run <app>   (installed third-party Linux app)' });
+  def(['dos', 'command.com'], 'Drop into an immersive MS-DOS real-mode session.', (ctx) => {
+    const line = Kernel.LIMAWEK.lock('dos', 'command.com');
+    if (line) ctx.print(line, 'kmsg');
+    ctx.gui.setDosMode(true);
+    ctx.print('');
+    ctx.print('Starting MS-DOS...', 'accent');
+    ctx.print('');
+    ctx.print('MS-DOS Version ' + Kernel.personalities.dos.version + '  (LIMEdit BLOCK real-mode personality)');
+    ctx.print('(C) LIMEdit BLOCK. Modelled on microsoft/MS-DOS (MIT).');
+    ctx.print('');
+    ctx.print('LIMAWEK is LOCKED to real-mode. Type EXIT to return to the hybrid shell.', 'dim');
+  });
+  def(['exit', 'logout', 'quit'], 'Leave DOS mode, or close this terminal window.', (ctx) => {
+    if (Kernel.LIMAWEK.isLocked()) {
+      const line = Kernel.LIMAWEK.unlock('limesh');
+      ctx.gui.setDosMode(false);
+      ctx.print('Returning to the hybrid limesh…', 'accent');
+      if (line) ctx.print(line, 'kmsg');
+      return;
+    }
+    ctx.gui.closeActiveTerminal();
   });
 
   // ---------------- GUI & apps -----------------------------------------
@@ -453,7 +545,7 @@ const Commands = (() => {
   });
 
   // ---------------- live code ------------------------------------------
-  def(['code', 'js', 'eval', 'run'], 'Run JavaScript live inside the shell.', (ctx, a, raw) => {
+  def(['code', 'js', 'eval'], 'Run JavaScript live inside the shell.', (ctx, a, raw) => {
     const src = raw.replace(/^\S+\s*/, '');
     if (!src) return ctx.print('usage: code <javascript>   — has: shell, fs, sys, gui, print(x)', 'dim');
     const api = {
@@ -478,7 +570,7 @@ const Commands = (() => {
     ctx.print('It is now safe to turn off your BLOCK. 🟩');
     document.body.classList.add('poweroff');
   });
-  def(['exit', 'logout', 'quit'], 'Close this terminal window.', (ctx) => ctx.gui.closeActiveTerminal());
+  // (exit is defined in the hybrid-kernel section so it can leave DOS mode.)
 
   // ---------------- format (DOS gag, guarded) --------------------------
   def('format', 'Format a drive (DOS) — refuses, wisely.', (ctx) =>
@@ -486,6 +578,7 @@ const Commands = (() => {
 
   return {
     table: cmds,
+    abi: abiOf,
     lolcatAnimate(el) {
       const text = el.textContent; el.textContent = '';
       const spans = [...text].map((ch) => { const s = document.createElement('span'); s.textContent = ch; el.appendChild(s); return s; });

@@ -1,98 +1,98 @@
 # 🟩 LIMEdit BLOCK
 
-**A modern operating environment where the GUI *is* the shell.**
+**A modern operating environment with a hybrid kernel, where the GUI *is* the terminal.**
 
-LIMEdit BLOCK is a self-contained, browser-based operating system *tribute* that
-welds together two officially open-sourced code bases and dresses the result in
-a classic-Mac desktop:
+LIMEdit BLOCK is a self-contained, browser-based operating system *tribute*. It
+doesn't run one kernel — it runs a **hybrid kernel** with two personalities
+welded together, and a supervisor called **LIMAWEK** that hot-switches between
+them depending on what each workload needs:
 
-| Ingredient | What BLOCK borrows | Source |
+| Personality | Modelled on | Services |
 |---|---|---|
-| **Arch Linux** | rolling-release feel, the `pacman` package model, FHS layout (`/usr`, `/etc`, `/home`), modern GNU userland semantics | archlinux.org |
-| **MS-DOS** | the classic `COMMAND.COM` verbs — `DIR`, `CLS`, `TYPE`, `VER`, `MEM` … (case-insensitive) | [microsoft/MS-DOS](https://github.com/microsoft/MS-DOS) (MIT) |
-| **System 9.2.2 / macOS** | the top menu bar, traffic-light windows, and a dock | — |
+| **MS-DOS real-mode** (16-bit) | [microsoft/MS-DOS](https://github.com/microsoft/MS-DOS) (v1.25 / 2.0 / 4.0, MIT) | the classic `COMMAND.COM` verbs — `DIR`, `TYPE`, `VER`, `MEM` … |
+| **Linux (Arch)** (64-bit, `linux 6.14.2-arch1`) | Arch Linux, newest rolling | modern userland, `pacman`, **and every third-party Linux application** |
 
-> **Scope, honestly:** BLOCK is a faithful *emulation*, not a bootable kernel.
-> You cannot compile the Linux and MS-DOS kernels into a repository web app, so
-> BLOCK reproduces the **behaviour and command surface** of those systems in a
-> pure-client-side environment. Everything runs in your browser; no real disk is
-> touched, which is what makes it safe to run anywhere.
+The desktop chrome is **System 9.2.2 / macOS**-style (top menu bar, traffic-light
+windows, dock).
 
-This project is intentionally **independent of the LimeEdit editor** in the rest
-of the repo — it shares nothing but the repository.
+> **Scope, honestly:** you cannot compile the Linux and MS-DOS kernels into a
+> repository web app, so BLOCK reproduces their **behaviour, ABI feel, and
+> command surface** in a pure-client-side environment. No real disk or CPU mode
+> is touched. It is deliberately **independent of the LimeEdit editor** in the
+> rest of the repo — it shares nothing but the repository.
 
 ---
+
+## The hybrid kernel & LIMAWEK
+
+**LIMAWEK** — the *LIMe Adaptive Workload Arbitration & Execution Kernel-manager*
+— watches every workload and decides which personality's ABI it needs, then
+hot-switches the kernel there and logs the transition:
+
+```
+[lime@limebox ~]$ DIR                     # a DOS verb…
+limawek: 'DIR' needs DOS ABI  →  kernel switched to MS-DOS real-mode (real-mode · 16-bit)
+C:\HOME\LIME> ls                          # …a Linux verb switches it right back
+limawek: 'ls' needs LINUX ABI  →  kernel switched to Linux (Arch) (protected-mode · 64-bit)
+[lime@limebox ~]$
+```
+
+Notice the **prompt itself changes** (`C:\…>` vs `[lime@limebox ~]$`) and the
+menu-bar badge (`◆ dos·real-mode` vs `◆ arch·6.14.2`) — that is the hybrid
+kernel changing "where it needs to."
+
+Inspect and drive it:
+
+```
+kernel                 # show the hybrid kernel + both personalities
+limawek status         # the arbiter's state
+limawek log            # every kernel transition so far
+limawek mode dos       # force a personality
+dos                    # lock into an immersive MS-DOS session (EXIT to leave)
+```
+
+### Third-party Linux applications need the Linux kernel
+
+Install from `pacman`, then `run` it — LIMAWEK loads the Linux (Arch) kernel to
+service the binary, spawns a process, and (if it's a GUI app) opens a window:
+
+```
+pacman -S firefox
+run firefox            # → limawek loads linux 6.14.2-arch1, [pid] firefox running
+```
+
+## The GUI is the terminal
+
+BlockWM (the window manager) is **always on**, because it boots with a maximized
+**root console** that can never be closed — the terminal *is* the desktop.
+Every app, and every `run`-launched Linux binary, floats above it as another
+managed window.
 
 ## Run it
 
 ```bash
-# Option A — dependency-free static server
-node limedit-block/server.js            # → http://localhost:4000
-
-# Option B — just open the file
-open limedit-block/index.html           # it's 100% client-side
+node limedit-block/server.js       # → http://localhost:4000  (dependency-free)
+# or just open limedit-block/index.html — it's 100% client-side
 ```
 
-## The shell (`limesh`)
+## The shell (`limesh`) — four dialects, one prompt
 
-One shell, four dialects living side by side. Command names are
-**case-insensitive**.
+Command names are **case-insensitive**.
 
-- **Modern / Arch userland:** `ls` `cd` `pwd` `cat` `mkdir` `rm` `cp` `mv`
-  `tree` `grep` `find` `ps` `kill` `free` `df` `uname` `history` `alias` …
-- **MS-DOS verbs:** `DIR` `CLS` `TYPE` `COPY` `DEL` `REN` `VER` `MEM` `MD` `RD` …
-- **PowerShell cmdlets:** `Get-ChildItem` `Set-Location` `Get-Content`
-  `Write-Host` `Get-Process` `New-Item` `Remove-Item` `$PSVersionTable` … (plus a
-  forgiving Verb-Noun fallback)
-- **Fun:** `neofetch` (animated ASCII banner), `cowsay`, `fortune`, `ascii` /
-  `figlet`, `lolcat`, `matrix`, `sl`, `coffee`, `sudo` …
+- **Modern / Arch userland:** `ls cd pwd cat mkdir rm cp mv tree grep find ps kill free df uname history alias …`
+- **MS-DOS verbs (→ real-mode):** `DIR CLS TYPE COPY DEL REN VER MEM MD RD …`
+- **PowerShell cmdlets:** `Get-ChildItem Set-Location Get-Content Write-Host Get-Process New-Item $PSVersionTable …` (+ Verb-Noun fallback)
+- **Fun:** `neofetch` (Arch-style animated banner), `cowsay` `fortune` `ascii`/`figlet` `lolcat` `matrix` `sl` `coffee` `sudo`
+- **Live code:** `code 2 + 2` — evaluates JavaScript with `shell`, `fs`, `sys`, `gui` in scope.
 
-### Package manager
+### Fallback-GUI
 
-```
-pacman -Syu                 # upgrade the world
-pacman -S block-browser     # install a package
-pacman -Ss editor           # search the repos
-pacman -Q                   # list installed packages
-apt install firefox         # Debian front-end → routes to pacman
-```
-
-### Run code live in the shell
-
-```
-code 2 + 2                  # → 4
-code sys.version            # read kernel/system state
-code print(fs.list('/home/lime'))
-```
-`code` (aliases `js`, `eval`, `run`) evaluates JavaScript with `shell`, `fs`,
-`sys`, and `gui` in scope, so you can manipulate the running shell directly.
-
-## The GUI
-
-The desktop **is** the shell. A System-9-style menu bar sits on top; windows
-have traffic-light controls; a dock sits at the bottom. Launch apps from the
-`▦` menu, the Apple menu, or the shell:
-
-```
-open browser        # the detailed web browser
-open files          # VFS file browser
-open editor         # a tiny built-in text editor
-open monitor        # live activity monitor
-open settings       # System Preferences
-```
-
-### Fallback-GUI (rich app chrome)
-
-Graphical apps such as the browser need a richer GUI than the shell. Toggle it:
+Graphical apps such as the browser need richer chrome than the shell:
 
 ```
 fallback-gui ~allow      # unlock the full, detailed app chrome
 fallback-gui ~disable    # degrade apps to lightweight, shell-first windows
 ```
-
-With the fallback-GUI **disabled**, the browser renders a minimal, text-first
-view; **allowed**, it renders full chrome. The state is shown in the menu bar
-(`GUI: shell` / `GUI: rich`).
 
 ---
 
@@ -102,13 +102,13 @@ view; **allowed**, it renders full chrome. The state is shown in the menu bar
 limedit-block/
 ├─ index.html          boot screen + desktop shell
 ├─ server.js           dependency-free static server
-├─ css/block.css       System-9 desktop styling, themes, wallpapers
+├─ css/block.css       System-9 desktop, DOS look, themes, wallpapers
 └─ js/
-   ├─ kernel.js        in-memory VFS, process table, system metadata
-   ├─ commands.js      the command library (+ pacman) and ASCII font
-   ├─ shell.js         limesh: the interactive terminal runtime
-   ├─ neofetch.js      the animated ASCII system banner
+   ├─ kernel.js        hybrid kernel + LIMAWEK arbiter + VFS + process table
+   ├─ neofetch.js      Arch-style animated ASCII banner
+   ├─ commands.js      the command library (+ pacman, ABI map) and ASCII font
+   ├─ shell.js         limesh: mode-aware terminal runtime
    ├─ apps.js          browser, files, about, editor, settings, monitor
-   ├─ gui.js           Block9 window manager, menu bar, dock
-   └─ boot.js          the power-on sequence
+   ├─ gui.js           BlockWM: always-on WM, root console, menu bar, dock
+   └─ boot.js          the power-on sequence (DOS POST → Arch handoff)
 ```

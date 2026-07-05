@@ -1,23 +1,27 @@
 /*
  * LIMEdit BLOCK — boot.js
- * The power-on sequence: a scrolling kernel log (arch·dos flavoured), a
- * progress bar, then the Block9 desktop with a Terminal already running
- * `neofetch`, exactly as the spec asks.
+ * The power-on sequence, MS-DOS flavoured at the start (real-mode POST) and
+ * Arch flavoured at the end (the hybrid kernel + LIMAWEK come up), then the
+ * Block9 desktop — which is really just the always-on root console.
  */
 'use strict';
 
 (function () {
   const LOG = [
-    '[    0.000000] LIMEdit BLOCK archdos 6.9.0-BLOCK booting…',
-    '[    0.014212] CPU: Citrus C9 @ 3.60GHz (8 cores) — brought online',
-    '[    0.031004] Loading MS-DOS compatibility verbs (COMMAND.COM shim) … ok',
-    '[    0.052771] Loading Arch userland (coreutils, pacman 6.1.0) … ok',
-    '[    0.079330] blockfs: mounted / (256G, in-memory) … ok',
-    '[    0.101888] pacman: 8 packages in local db',
-    '[    0.140550] block9: starting System-9.2.2-style desktop … ok',
-    '[    0.166201] blockwm: compositor up, fallback-GUI = disabled',
-    '[    0.190004] limesh: PowerShell + DOS + GNU dialects registered',
-    '[    0.221377] systemd-block: reached target Graphical Interface.',
+    'LIMEdit BLOCK BIOS v1.0  —  Power-On Self Test',
+    'HIMEM: Testing extended memory... 16384K OK',
+    '',
+    'Starting MS-DOS real-mode personality...',
+    '  COMMAND.COM loaded (microsoft/MS-DOS compat, MIT)',
+    '  8.3 filesystem, drive C: mounted',
+    '',
+    'Handing off to the hybrid kernel: archdos-hybrid 1.0',
+    '  [ ok ] LIMAWEK — kernel arbiter — online',
+    '  [ ok ] loading Linux (Arch) personality: linux 6.14.2-arch1',
+    '  [ ok ] pacman 7.0.0 — 9 packages in local db',
+    '  [ ok ] BlockWM — always-on window manager — started',
+    '  [ ok ] block9: System-9.2.2-style desktop',
+    '  [ ok ] reached target Graphical Interface',
     '',
     'LIMEdit BLOCK 1.0.0 (Sour Brick)  —  login: lime (auto)',
   ];
@@ -33,10 +37,8 @@
       logEl.textContent += LOG[i] + '\n';
       barFill.style.width = Math.round(((i + 1) / LOG.length) * 100) + '%';
       i++;
-      setTimeout(nextLine, 90 + Math.random() * 90);
-    } else {
-      setTimeout(finish, 420);
-    }
+      setTimeout(nextLine, 70 + Math.random() * 80);
+    } else setTimeout(finish, 380);
   }
 
   function finish() {
@@ -44,17 +46,14 @@
     setTimeout(() => {
       boot.hidden = true;
       desktop.hidden = false;
-      GUI.init();
-      const term = GUI.openApp('terminal');
-      // Show off immediately: run neofetch in the fresh terminal.
-      setTimeout(() => term.shell && term.shell.execute('neofetch'), 250);
+      GUI.init();                          // boots the always-on root console
+      const root = GUI.root();
+      setTimeout(() => root && root.shell && root.shell.execute('neofetch'), 250);
     }, 500);
   }
 
-  // Allow click/keys to skip the boot animation.
   function skip() { i = LOG.length; }
   boot.addEventListener('click', skip);
   window.addEventListener('keydown', function once() { skip(); window.removeEventListener('keydown', once); });
-
   window.addEventListener('DOMContentLoaded', () => setTimeout(nextLine, 300));
 })();

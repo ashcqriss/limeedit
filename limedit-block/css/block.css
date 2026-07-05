@@ -176,9 +176,48 @@ body.poweroff .desktop { filter: brightness(0.05) saturate(0); transition: filte
 .term-line.err { color: #ff7b72; }
 .term-line.accent { color: var(--lime); }
 .term-line.dim { color: #7d8899; }
+.term-line.kmsg { color: #f2a33c; font-style: italic; border-left: 2px solid #f2a33c; padding-left: 8px; margin-left: -10px; }
 .term-line .dir { color: #6cb6ff; font-weight: 600; }
 .term-line .fileo { color: var(--term-ink); }
 .term-line mark { background: rgba(126, 211, 33, 0.35); color: inherit; }
+
+/* Mode-aware prompt: Arch lime vs DOS light-gray. */
+.term-prompt.arch { color: var(--lime); }
+.term-prompt.dos { color: #cfcfcf; font-weight: 500; }
+
+/* ---- always-on root console (the GUI *is* the terminal) ---- */
+.win-root { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
+  border-radius: 0; border: 0; box-shadow: none; }
+.win-root .win-title { border-radius: 0; }
+.lc-off { background: #c8ccd2 !important; opacity: 0.45; cursor: not-allowed; }
+.win-proc { margin-left: auto; font: 11px var(--mono); color: var(--ink-dim); padding-right: 4px; }
+
+/* ---- the MS-DOS look, shown whenever the kernel is in real-mode ---- */
+body.kernel-dos .win-root .term {
+  background: #000; color: #c9c9c9;
+  transition: background 0.25s, color 0.25s;
+}
+body.kernel-dos .win-root .term-prompt.dos { color: #c9c9c9; }
+body.kernel-dos .win-root .term-input { color: #c9c9c9; caret-color: #c9c9c9; }
+body.kernel-dos .win-root .term-echo { color: #eaeaea; }
+
+/* ---- immersive DOS mode (`dos` command): CRT skin + scanlines ---- */
+body.dosmode .win-root .win-title { background: #0a0a0a; border-bottom-color: #1e1e1e; }
+body.dosmode .win-root .win-name { color: #8a8a8a; }
+body.dosmode .win-root .term { background: #000; color: #cfcfcf; }
+body.dosmode .win-root .term-body,
+body.dosmode .win-root .win-body { position: relative; }
+body.dosmode .win-root .win-body::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.28) 3px);
+  animation: crt-flicker 5s infinite;
+}
+@keyframes crt-flicker { 0%,100% { opacity: 0.55; } 50% { opacity: 0.8; } }
+
+/* ---- kernel indicator in the menu bar ---- */
+.mb-kernel { font-variant: small-caps; font-weight: 700; letter-spacing: 0.4px; color: var(--lime-deep); }
+body.kernel-dos .mb-kernel { color: #b9821f; }
+:root[data-theme="dark"] .mb-kernel { color: var(--lime); }
 
 /* ---------- neofetch ---------- */
 .neofetch { display: flex; gap: 20px; padding: 6px 0 10px; flex-wrap: wrap; }
