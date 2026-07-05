@@ -1,8 +1,9 @@
 /* ==========================================================================
    LIMEdit BLOCK — block.css
-   A System-9.2.2-flavoured desktop with a macOS-style top menu bar. Light and
-   dark themes; four wallpapers. Everything is self-contained (no web fonts,
-   no external assets) so the OS runs from a file:// URL or any static host.
+   System 9.2.2 "Platinum" chrome, modernised: pinstriped active title bars,
+   a platinum menu bar with an Application menu, desktop icons, a launcher
+   dock, animated windows. Light + dark themes, four wallpapers. Fully
+   self-contained (no web fonts, no external assets).
    ========================================================================== */
 
 :root {
@@ -13,166 +14,249 @@
   --accent: #35c759;
 
   --bg: #e8ebf0;
-  --panel: #f7f8fa;
+  --panel: #f2f3f6;
   --panel-2: #ffffff;
   --ink: #1d2129;
   --ink-dim: #6b7280;
-  --line: #d3d8e0;
-  --bar: rgba(248, 249, 251, 0.78);
+  --line: #c7ccd4;
+  --bar-a: #fdfdfe;            /* platinum menu bar gradient */
+  --bar-b: #e4e7ec;
   --bar-ink: #23272f;
-  --shadow: 0 18px 50px rgba(20, 30, 50, 0.28);
-  --term-bg: #0d1117;
+  --stripe-a: #f5f7f9;         /* active title pinstripes */
+  --stripe-b: #dfe4ea;
+  --title-inactive: #ececef;
+  --shadow: 0 14px 40px rgba(20, 30, 50, 0.30), 0 2px 8px rgba(20, 30, 50, 0.18);
+  --term-bg: rgba(11, 16, 13, 0.90);
+  --term-solid: #0b100d;
   --term-ink: #d7e0ea;
 }
 :root[data-theme="dark"] {
   --bg: #0b0e14;
-  --panel: #161b22;
-  --panel-2: #1c222b;
+  --panel: #181d25;
+  --panel-2: #1e242e;
   --ink: #e6edf3;
   --ink-dim: #8b95a3;
-  --line: #2a313c;
-  --bar: rgba(22, 27, 34, 0.72);
+  --line: #313947;
+  --bar-a: #232a34;
+  --bar-b: #171c24;
   --bar-ink: #e6edf3;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  --term-bg: #05070a;
+  --stripe-a: #2a323e;
+  --stripe-b: #1e242e;
+  --title-inactive: #1b2028;
+  --shadow: 0 16px 50px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.5);
+  --term-bg: rgba(5, 8, 6, 0.92);
+  --term-solid: #050806;
   --term-ink: #d7e0ea;
 }
 
 * { box-sizing: border-box; }
-/* A class-level `display` beats the UA `[hidden]` rule, so make hiding win. */
+/* A class-level `display` must not beat the [hidden] attribute. */
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
-body {
-  font-family: var(--ui);
-  color: var(--ink);
-  overflow: hidden;
-  transition: background 0.4s;
+body { font-family: var(--ui); color: var(--ink); overflow: hidden; }
+
+/* Motion kill-switch (Settings → Reduce motion, or OS preference). */
+.no-motion *, .no-motion *::before, .no-motion *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
 /* ---------- wallpapers ---------- */
-body.wp-lime  { background: radial-gradient(120% 120% at 20% 0%, #a8e063 0%, #56ab2f 55%, #245c1f 100%); }
-body.wp-dusk  { background: radial-gradient(120% 120% at 80% 10%, #3a1c71 0%, #d76d77 55%, #ffaf7b 100%); }
-body.wp-mint  { background: linear-gradient(160deg, #d1fdff 0%, #7ee8c0 50%, #17a67a 100%); }
-body.wp-noir  { background: radial-gradient(120% 120% at 50% 0%, #232526 0%, #0b0e14 100%); }
+body.wp-lime     { background: radial-gradient(120% 120% at 20% 0%, #a8e063 0%, #56ab2f 55%, #245c1f 100%); }
+body.wp-platinum { background: linear-gradient(180deg, #b9bfc7 0%, #969da6 100%); }
+body.wp-dusk     { background: radial-gradient(120% 120% at 80% 10%, #3a1c71 0%, #d76d77 55%, #ffaf7b 100%); }
+body.wp-noir     { background: radial-gradient(120% 120% at 50% 0%, #2b2e33 0%, #0b0e14 100%); }
 
 /* ============================ BOOT ============================ */
-.boot {
-  position: fixed; inset: 0; z-index: 999;
-  background: #05070a; color: #7ee081;
-  display: grid; grid-template-rows: 1fr auto; gap: 0;
-  font-family: var(--mono);
-  transition: opacity 0.5s;
-}
-.boot.done { opacity: 0; }
+.boot { position: fixed; inset: 0; z-index: 999; background: #05070a; transition: opacity 0.45s; }
+.boot.done { opacity: 0; pointer-events: none; }
 .boot-log {
-  margin: 0; padding: 22px 26px; font-size: 12.5px; line-height: 1.5;
-  color: #8de08f; white-space: pre-wrap; overflow: hidden; align-self: end;
+  margin: 0; padding: 24px 28px; font: 12.5px/1.55 var(--mono);
+  color: #8de08f; white-space: pre-wrap; height: 100%; overflow: hidden;
 }
-.boot-brand { text-align: center; padding: 0 0 12vh; }
-.boot-logo { font-size: 72px; animation: pulse 1.6s ease-in-out infinite; }
-.boot-name { font-size: 30px; font-weight: 800; letter-spacing: 6px; color: #eafff0; margin-top: 6px; }
-.boot-sub { color: #4f9a06; letter-spacing: 3px; font-size: 12px; margin-top: 2px; }
-.boot-bar { width: 260px; height: 6px; margin: 18px auto 0; background: #1a2230; border-radius: 4px; overflow: hidden; }
-.boot-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--lime), var(--accent)); transition: width 0.2s; }
-@keyframes pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 #7ed321); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 22px #7ed321); } }
+.boot-splash {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: linear-gradient(180deg, #c3c9d1 0%, #9aa1ab 100%);
+}
+.splash-card {
+  background: linear-gradient(180deg, #fdfdfe, #eceef2);
+  border: 1px solid #9aa1ab; border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(20, 30, 50, 0.35), inset 0 1px 0 #fff;
+  padding: 34px 54px 26px; text-align: center; color: #23272f;
+}
+.splash-logo { font-size: 64px; line-height: 1; animation: pulse 1.8s ease-in-out infinite; }
+.splash-card h1 { margin: 10px 0 2px; font-size: 28px; letter-spacing: 4px; }
+.splash-sub { margin: 0 0 18px; color: #5a6270; font-size: 13px; }
+.boot-bar { width: 300px; height: 10px; margin: 0 auto; background: #cfd4db; border: 1px solid #9aa1ab; border-radius: 6px; overflow: hidden; }
+.boot-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--lime-deep), var(--lime)); transition: width 0.18s; }
+.splash-ext { margin-top: 18px; min-height: 30px; display: flex; gap: 10px; justify-content: center; font-size: 22px; }
+.splash-ext span { animation: ext-pop 0.25s ease-out backwards; }
+.splash-foot { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; color: #4b525d; font: 11px var(--mono); letter-spacing: 1px; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); filter: drop-shadow(0 0 16px #7ed321); } }
+@keyframes ext-pop { from { transform: scale(0.2) translateY(8px); opacity: 0; } }
 
 /* ============================ DESKTOP ============================ */
 .desktop { position: fixed; inset: 0; display: flex; flex-direction: column; }
-body.poweroff .desktop { filter: brightness(0.05) saturate(0); transition: filter 1s; pointer-events: none; }
+body.poweroff .desktop { filter: brightness(0.04) saturate(0); transition: filter 1s; pointer-events: none; }
 
-/* ---------- menu bar ---------- */
+/* ---------- Platinum menu bar ---------- */
 .menubar {
-  height: 28px; flex: 0 0 28px;
-  display: flex; align-items: center; gap: 2px;
+  height: 30px; flex: 0 0 30px;
+  display: flex; align-items: center; gap: 1px;
   padding: 0 8px;
-  background: var(--bar);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  backdrop-filter: blur(18px) saturate(1.4);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: linear-gradient(180deg, var(--bar-a), var(--bar-b));
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
   color: var(--bar-ink);
-  font-size: 13px; z-index: 500; position: relative;
+  font-size: 13px; z-index: 500; position: relative; user-select: none;
 }
+:root[data-theme="dark"] .menubar { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset; }
 .mb-item {
   background: none; border: 0; color: inherit; font: inherit;
-  padding: 2px 9px; height: 22px; border-radius: 6px; cursor: default;
+  padding: 2px 10px; height: 24px; border-radius: 5px; cursor: default; white-space: nowrap;
 }
-.mb-item:hover, .mb-item.on { background: rgba(126, 211, 33, 0.28); }
-.mb-logo { font-size: 15px; padding: 2px 8px; }
+.mb-item:hover, .mb-item.on { background: var(--accent); color: #fff; }
+.mb-logo { font-size: 15px; padding: 2px 9px; }
 .mb-app { font-weight: 700; }
 .mb-spacer { flex: 1; }
-.mb-status { font-size: 12px; color: var(--bar-ink); opacity: 0.85; padding: 0 6px; }
+.mb-status {
+  font-size: 12px; padding: 0 9px; height: 18px; display: inline-flex; align-items: center;
+  border-left: 1px solid var(--line); opacity: 0.9; white-space: nowrap;
+}
 .mb-fallback { font-variant: small-caps; letter-spacing: 0.5px; }
 .mb-clock { font-variant-numeric: tabular-nums; font-weight: 600; }
 .mb-appmenu { font-size: 15px; }
+.mb-appwin { font-weight: 600; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 860px) { #mb-wm, .mb-status[title="Battery"] { display: none; } }
 
 .menu-drop {
-  position: fixed; top: 28px; min-width: 220px;
+  position: fixed; min-width: 230px;
   background: var(--panel); color: var(--ink);
   border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: var(--shadow); padding: 6px; z-index: 600;
+  box-shadow: var(--shadow); padding: 5px; z-index: 600;
+  animation: menu-in 0.12s ease-out;
 }
-.menu-drop hr { border: 0; border-top: 1px solid var(--line); margin: 5px 4px; }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } }
+.menu-drop hr { border: 0; border-top: 1px solid var(--line); margin: 5px 6px; }
 .menu-item {
-  display: block; width: 100%; text-align: left;
+  display: flex; justify-content: space-between; align-items: center; gap: 24px;
+  width: 100%; text-align: left;
   background: none; border: 0; color: inherit; font: 13px var(--ui);
   padding: 6px 12px; border-radius: 7px; cursor: default;
 }
 .menu-item:hover { background: var(--accent); color: #fff; }
+.menu-item .ms { font-size: 11px; color: var(--ink-dim); }
+.menu-item:hover .ms { color: rgba(255, 255, 255, 0.85); }
+.menu-item.disabled { opacity: 0.4; pointer-events: none; }
+
+/* ---------- desktop icons (float on the root console, top-right) ---------- */
+.desktop-icons { position: absolute; top: 46px; right: 16px; display: flex; flex-direction: column; gap: 20px; z-index: 5; }
+.dicon { width: 88px; text-align: center; cursor: default; user-select: none; }
+.dicon i { font-style: normal; font-size: 40px; display: block; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45)); transition: transform 0.12s; }
+.dicon:hover i { transform: scale(1.08); }
+.dicon small {
+  display: inline-block; margin-top: 3px; font-size: 11px; color: #fff;
+  background: rgba(0, 0, 0, 0.28); border-radius: 5px; padding: 1px 7px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.dicon.sel small { background: var(--accent); }
 
 /* ---------- windows ---------- */
 .windows { position: relative; flex: 1; overflow: hidden; }
 .win {
   position: absolute; display: flex; flex-direction: column;
-  background: var(--panel); border-radius: 12px;
+  background: var(--panel); border-radius: 10px;
   box-shadow: var(--shadow); overflow: hidden;
   border: 1px solid var(--line);
-  min-width: 300px; min-height: 160px;
+  min-width: 320px; min-height: 180px;
+  animation: win-open 0.18s ease-out;
 }
-.win.active { box-shadow: 0 26px 70px rgba(10, 20, 40, 0.42); }
-.win.mini { height: 34px !important; overflow: hidden; }
-.win.zoomed { left: 12px !important; top: 34px !important; width: calc(100vw - 24px) !important; height: calc(100vh - 88px) !important; }
+@keyframes win-open { from { opacity: 0; transform: scale(0.94) translateY(10px); } }
+.win.minimizing { opacity: 0; transform: translateY(45vh) scale(0.12); transition: transform 0.22s ease-in, opacity 0.22s ease-in; }
+.win.minimized { display: none; }
+.win.zoomed { left: 10px !important; top: 36px !important; width: calc(100vw - 20px) !important; height: calc(100vh - 92px) !important; }
+
 .win-title {
-  height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 10px;
-  padding: 0 12px; cursor: default; user-select: none;
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  height: 30px; flex: 0 0 30px;
+  display: grid; grid-template-columns: 66px 1fr 90px; align-items: center;
+  padding: 0 10px; cursor: default; user-select: none;
+  background: var(--title-inactive);
   border-bottom: 1px solid var(--line);
 }
+/* Platinum pinstripes only on the focused window — pure System 9. */
+.win.active > .win-title {
+  background: repeating-linear-gradient(180deg, var(--stripe-a) 0 2px, var(--stripe-b) 2px 4px);
+}
 .win-lights { display: flex; gap: 8px; }
-.lc { width: 12px; height: 12px; border-radius: 50%; display: inline-block; cursor: pointer; }
+.lc { width: 12px; height: 12px; border-radius: 50%; display: inline-block; cursor: pointer; border: 1px solid rgba(0, 0, 0, 0.14); }
 .lc-close { background: #ff5f57; } .lc-min { background: #febc2e; } .lc-zoom { background: #28c840; }
-.win-name { font-size: 12.5px; font-weight: 600; color: var(--ink-dim); }
+.win:not(.active) .lc { background: #c9ccd2; }
+.lc-off { background: #c9ccd2 !important; opacity: 0.5; cursor: not-allowed; }
+.win-name {
+  font-size: 12.5px; font-weight: 700; text-align: center; color: var(--ink-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--title-inactive); padding: 1px 10px; border-radius: 5px; justify-self: center; max-width: 100%;
+}
+.win.active .win-name { color: var(--ink); }
+.win-proc { justify-self: end; font: 10.5px var(--mono); color: var(--ink-dim); background: var(--title-inactive); padding: 1px 7px; border-radius: 5px; }
 .win-body { flex: 1; overflow: auto; position: relative; }
 
-/* ---------- dock ---------- */
+.win-grip {
+  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; z-index: 20;
+  cursor: nwse-resize; opacity: 0.6;
+  background:
+    linear-gradient(135deg, transparent 0 55%, var(--ink-dim) 55% 60%, transparent 60% 70%, var(--ink-dim) 70% 75%, transparent 75% 85%, var(--ink-dim) 85% 90%, transparent 90%);
+}
+
+/* ---- always-on root console (the GUI *is* the terminal) ---- */
+.win-root {
+  left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
+  border-radius: 0; border: 0; box-shadow: none; animation: none; background: transparent;
+}
+.win-root .win-title { border-radius: 0; }
+.win-proc { pointer-events: none; }
+
+/* ---------- launcher dock ---------- */
 .dock {
-  flex: 0 0 auto; display: flex; gap: 8px; justify-content: center;
-  padding: 6px 12px 10px; z-index: 400;
+  flex: 0 0 auto; display: flex; gap: 10px; justify-content: center; align-items: end;
+  padding: 6px 14px 10px; z-index: 400;
 }
 .dock-btn {
+  position: relative;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
-  background: var(--bar); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 12px;
-  padding: 5px 10px; cursor: pointer; color: var(--bar-ink); min-width: 58px;
-  transition: transform 0.12s;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.28));
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 13px;
+  padding: 6px 11px 8px; cursor: pointer; color: #1d2129; min-width: 62px;
+  transition: transform 0.13s;
 }
-.dock-btn:hover { transform: translateY(-4px) scale(1.06); }
-.dock-btn span { font-size: 20px; line-height: 1; }
-.dock-btn small { font-size: 9px; opacity: 0.8; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root[data-theme="dark"] .dock-btn { background: linear-gradient(180deg, rgba(40, 46, 56, 0.72), rgba(24, 29, 37, 0.62)); color: #e6edf3; border-color: rgba(255, 255, 255, 0.14); }
+.dock-btn:hover { transform: translateY(-5px) scale(1.07); }
+.dock-btn span { font-size: 21px; line-height: 1.15; }
+.dock-btn small { font-size: 9px; opacity: 0.85; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-btn .dot {
+  position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  opacity: 0; transition: opacity 0.15s;
+}
+.dock-btn.running .dot { opacity: 1; }
 
 /* ============================ TERMINAL ============================ */
 .term {
   background: var(--term-bg); color: var(--term-ink);
-  font-family: var(--mono); font-size: 13px; line-height: 1.5;
-  padding: 10px 12px; height: 100%; overflow: auto; cursor: text;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font-family: var(--mono); font-size: 13px; line-height: 1.52;
+  padding: 12px 14px; height: 100%; overflow: auto; cursor: text;
 }
+.win:not(.win-root) .term { background: var(--term-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.win-root .term { padding-right: 118px; }        /* lane for desktop icons */
 .term-line { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; }
 .term-echo { color: #eaf2fb; }
-.term-prompt { color: var(--lime); font-weight: 600; }
+.term-prompt { font-weight: 600; }
+.term-prompt.arch { color: var(--lime); }
+.term-prompt.dos { color: #cfcfcf; font-weight: 500; }
 .term-inputline { display: flex; align-items: baseline; }
-.term-input {
-  flex: 1; background: none; border: 0; outline: none;
-  color: var(--term-ink); font: inherit; caret-color: var(--lime);
-}
+.term-input { flex: 1; background: none; border: 0; outline: none; color: var(--term-ink); font: inherit; caret-color: var(--lime); }
 .term-line.err { color: #ff7b72; }
 .term-line.accent { color: var(--lime); }
 .term-line.dim { color: #7d8899; }
@@ -181,56 +265,41 @@ body.poweroff .desktop { filter: brightness(0.05) saturate(0); transition: filte
 .term-line .fileo { color: var(--term-ink); }
 .term-line mark { background: rgba(126, 211, 33, 0.35); color: inherit; }
 
-/* Mode-aware prompt: Arch lime vs DOS light-gray. */
-.term-prompt.arch { color: var(--lime); }
-.term-prompt.dos { color: #cfcfcf; font-weight: 500; }
-
-/* ---- always-on root console (the GUI *is* the terminal) ---- */
-.win-root { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
-  border-radius: 0; border: 0; box-shadow: none; }
-.win-root .win-title { border-radius: 0; }
-.lc-off { background: #c8ccd2 !important; opacity: 0.45; cursor: not-allowed; }
-.win-proc { margin-left: auto; font: 11px var(--mono); color: var(--ink-dim); padding-right: 4px; }
-
-/* ---- the MS-DOS look, shown whenever the kernel is in real-mode ---- */
-body.kernel-dos .win-root .term {
-  background: #000; color: #c9c9c9;
-  transition: background 0.25s, color 0.25s;
-}
-body.kernel-dos .win-root .term-prompt.dos { color: #c9c9c9; }
+/* ---- the MS-DOS look: kernel in real-mode → console goes CGA ---- */
+body.kernel-dos .win-root .term { background: #000; color: #c9c9c9; -webkit-backdrop-filter: none; backdrop-filter: none; transition: background 0.25s, color 0.25s; }
 body.kernel-dos .win-root .term-input { color: #c9c9c9; caret-color: #c9c9c9; }
 body.kernel-dos .win-root .term-echo { color: #eaeaea; }
 
-/* ---- immersive DOS mode (`dos` command): CRT skin + scanlines ---- */
+/* ---- immersive DOS (`dos`): full CRT — chrome recedes ---- */
+body.dosmode .menubar { background: #101010; color: #a9a9a9; border-bottom-color: #262626; box-shadow: none; }
+body.dosmode .mb-item:hover, body.dosmode .mb-item.on { background: #2e2e2e; color: #eee; }
+body.dosmode .dock, body.dosmode .desktop-icons { display: none; }
 body.dosmode .win-root .win-title { background: #0a0a0a; border-bottom-color: #1e1e1e; }
-body.dosmode .win-root .win-name { color: #8a8a8a; }
-body.dosmode .win-root .term { background: #000; color: #cfcfcf; }
-body.dosmode .win-root .term-body,
-body.dosmode .win-root .win-body { position: relative; }
+body.dosmode .win-root .win-name { color: #8a8a8a; background: transparent; }
+body.dosmode .win-root .term { background: #000; color: #cfcfcf; padding-right: 14px; }
 body.dosmode .win-root .win-body::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
-  background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.28) 3px);
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.26) 3px);
   animation: crt-flicker 5s infinite;
 }
-@keyframes crt-flicker { 0%,100% { opacity: 0.55; } 50% { opacity: 0.8; } }
+@keyframes crt-flicker { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.8; } }
 
-/* ---- kernel indicator in the menu bar ---- */
+/* ---- kernel indicator ---- */
 .mb-kernel { font-variant: small-caps; font-weight: 700; letter-spacing: 0.4px; color: var(--lime-deep); }
 body.kernel-dos .mb-kernel { color: #b9821f; }
 :root[data-theme="dark"] .mb-kernel { color: var(--lime); }
 
 /* ---------- neofetch ---------- */
-.neofetch { display: flex; gap: 20px; padding: 6px 0 10px; flex-wrap: wrap; }
-.nf-art { margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.05; letter-spacing: 0; }
+.neofetch { display: flex; gap: 26px; padding: 6px 0 10px; flex-wrap: wrap; }
+.nf-art { margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.08; }
 .nf-artrow { display: block; }
-.nf-spark { text-shadow: 0 0 8px #fff, 0 0 14px var(--lime); color: #fff !important; }
-.nf-info { font-family: var(--mono); font-size: 12.5px; min-width: 260px; }
+.nf-info { font-family: var(--mono); font-size: 12.5px; min-width: 280px; }
 .nf-title { color: var(--lime); font-weight: 700; }
 .nf-rule { color: #4f9a06; }
 .nf-row b { color: #6cb6ff; }
 .nf-dot { color: var(--ink-dim); }
-.nf-swatch, .nf-swatch2 { display: flex; gap: 0; margin-top: 4px; }
-.nf-swatch span, .nf-swatch2 span { width: 18px; height: 12px; display: inline-block; }
+.nf-swatch { display: flex; margin-top: 6px; }
+.nf-swatch span { width: 20px; height: 13px; display: inline-block; }
 
 .lolcat { margin: 4px 0; font-family: var(--mono); font-size: 12px; line-height: 1.05; }
 .matrix { margin: 0; color: #35e05a; font-family: var(--mono); font-size: 12px; line-height: 1.05; text-shadow: 0 0 6px #1a8b2f; }
@@ -246,14 +315,16 @@ body.kernel-dos .mb-kernel { color: #b9821f; }
 }
 .br-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .br-addr { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: 13px var(--mono); background: var(--panel-2); color: var(--ink); }
+.br-marks { display: flex; gap: 4px; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.br-mark { background: none; border: 0; border-radius: 6px; padding: 3px 9px; font: 12px var(--ui); color: var(--ink-dim); cursor: pointer; }
+.br-mark:hover { background: rgba(126, 211, 33, 0.2); color: var(--ink); }
 .br-page { flex: 1; overflow: auto; padding: 26px 30px; line-height: 1.6; }
 .browser.lite .br-page { max-width: 640px; }
-.browser.lite .br-page * { font-family: var(--ui); }
-.browser.rich .br-page { background: var(--panel-2); }
 .br-page h1 { font-size: 26px; margin: 0 0 12px; }
-.br-page pre { background: var(--term-bg); color: var(--term-ink); padding: 12px 14px; border-radius: 10px; overflow: auto; font: 12.5px var(--mono); }
+.br-page pre { background: var(--term-solid); color: var(--term-ink); padding: 12px 14px; border-radius: 10px; overflow: auto; font: 12.5px var(--mono); }
 .br-page code { background: rgba(126, 211, 33, 0.16); padding: 1px 6px; border-radius: 5px; font: 12px var(--mono); }
 .br-page a { color: var(--lime-deep); text-decoration: none; font-weight: 600; }
+:root[data-theme="dark"] .br-page a { color: var(--lime); }
 .br-page a:hover { text-decoration: underline; }
 .pg-hero { text-align: center; padding: 20px 0; }
 .pg-logo { font-size: 64px; }
@@ -265,12 +336,19 @@ body.kernel-dos .mb-kernel { color: #b9821f; }
 
 /* ============================ FILES ============================ */
 .files { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); color: var(--ink); }
-.files-path { padding: 8px 12px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: var(--ink-dim); background: var(--panel); }
+.files-tools { display: flex; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.files-path { display: flex; gap: 2px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: var(--ink-dim); background: var(--panel); flex-wrap: wrap; }
+.files-crumb { background: none; border: 0; color: var(--lime-deep); font: 12px var(--mono); cursor: pointer; padding: 1px 3px; border-radius: 4px; }
+:root[data-theme="dark"] .files-crumb { color: var(--lime); }
+.files-crumb:hover { background: rgba(126, 211, 33, 0.2); }
 .files-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
 .files-list { overflow: auto; border-right: 1px solid var(--line); }
-.file-row { padding: 7px 14px; cursor: default; font-size: 13px; border-bottom: 1px solid transparent; }
-.file-row:hover { background: rgba(126, 211, 33, 0.16); }
+.file-row { display: flex; gap: 8px; align-items: center; padding: 7px 14px; cursor: default; font-size: 13px; }
+.file-row:hover { background: rgba(126, 211, 33, 0.14); }
+.file-row.sel { background: var(--accent); color: #fff; }
 .file-row.dir { font-weight: 600; }
+.file-meta { margin-left: auto; font: 11px var(--mono); color: var(--ink-dim); }
+.file-row.sel .file-meta { color: rgba(255, 255, 255, 0.8); }
 .files-preview { margin: 0; padding: 14px; overflow: auto; font: 12px var(--mono); white-space: pre-wrap; color: var(--ink); }
 
 /* ============================ ABOUT ============================ */
@@ -279,28 +357,62 @@ body.kernel-dos .mb-kernel { color: #b9821f; }
 .about-logo { font-size: 60px; }
 .about-head h1 { margin: 0; font-size: 26px; }
 .about-ver { color: var(--ink-dim); }
-.about .neofetch { background: var(--term-bg); color: var(--term-ink); border-radius: 12px; padding: 14px; margin: 12px 0; }
+.about .neofetch { background: var(--term-solid); color: var(--term-ink); border-radius: 12px; padding: 14px; margin: 12px 0; }
 .about .nf-info { color: var(--term-ink); }
 .about-info { line-height: 1.6; }
+.about-credit { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: var(--ink-dim); }
 
 /* ============================ EDITOR ============================ */
 .editor { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); }
 .ed-bar { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .ed-path { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: 12px var(--mono); background: var(--panel-2); color: var(--ink); }
-.ed-area { flex: 1; border: 0; outline: none; resize: none; padding: 14px 16px; font: 13px var(--mono); line-height: 1.6; background: var(--term-bg); color: var(--term-ink); }
+.ed-area { flex: 1; border: 0; outline: none; resize: none; padding: 14px 16px; font: 13px/1.6 var(--mono); background: var(--term-solid); color: var(--term-ink); }
+.ed-status { display: flex; gap: 16px; padding: 4px 12px; border-top: 1px solid var(--line); background: var(--panel); font: 11px var(--mono); color: var(--ink-dim); }
 
 /* ============================ SETTINGS ============================ */
 .settings { padding: 20px 24px; background: var(--panel-2); color: var(--ink); height: 100%; overflow: auto; }
-.settings h1 { font-size: 22px; margin: 0 0 16px; }
-.set-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.settings h1 { font-size: 22px; margin: 0 0 6px; }
+.settings h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); margin: 18px 0 4px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.wp-swatches { display: flex; gap: 8px; }
+.wp-sw { width: 44px; height: 30px; border-radius: 7px; border: 2px solid transparent; cursor: pointer; }
+.wp-sw.on { border-color: var(--accent); }
+.wp-sw.lime { background: linear-gradient(135deg, #a8e063, #245c1f); }
+.wp-sw.platinum { background: linear-gradient(180deg, #b9bfc7, #969da6); }
+.wp-sw.dusk { background: linear-gradient(135deg, #3a1c71, #ffaf7b); }
+.wp-sw.noir { background: linear-gradient(135deg, #2b2e33, #0b0e14); }
+.switch { position: relative; width: 42px; height: 24px; display: inline-block; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch i {
+  position: absolute; inset: 0; border-radius: 13px; background: var(--line);
+  transition: background 0.15s; cursor: pointer;
+}
+.switch i::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: left 0.15s;
+}
+.switch input:checked + i { background: var(--accent); }
+.switch input:checked + i::after { left: 20px; }
 
 /* ============================ MONITOR ============================ */
-.monitor { padding: 12px 16px; background: var(--term-bg); color: var(--term-ink); height: 100%; overflow: auto; }
-.mon-table { margin: 0; font: 12.5px var(--mono); white-space: pre; }
+.monitor { display: flex; flex-direction: column; height: 100%; background: var(--term-solid); color: var(--term-ink); font-family: var(--mono); }
+.mon-head { padding: 10px 14px 6px; font-size: 12px; color: var(--lime); border-bottom: 1px solid #223; }
+.mon-rows { flex: 1; overflow: auto; padding: 6px 8px; }
+.mon-row { display: grid; grid-template-columns: 48px 1fr 90px 52px 56px 30px; gap: 8px; align-items: center; font-size: 12px; padding: 4px 6px; border-radius: 6px; }
+.mon-row:hover { background: rgba(126, 211, 33, 0.08); }
+.mon-row.hdr { color: #7d8899; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.mon-cpu { height: 7px; border-radius: 4px; background: #1c2530; overflow: hidden; }
+.mon-cpu i { display: block; height: 100%; background: linear-gradient(90deg, var(--lime-deep), var(--lime)); }
+.mon-kill { background: none; border: 0; color: #ff7b72; cursor: pointer; font-size: 13px; border-radius: 5px; }
+.mon-kill:hover { background: rgba(255, 123, 114, 0.18); }
+.mon-kill:disabled { color: #444; cursor: not-allowed; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 640px) {
   .files-grid { grid-template-columns: 1fr; }
   .neofetch { flex-direction: column; }
-  .win { min-width: 260px; }
+  .win { min-width: 280px; }
+  .win-root .term { padding-right: 14px; }
+  .desktop-icons { display: none; }
 }

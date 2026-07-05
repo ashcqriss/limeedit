@@ -23,7 +23,7 @@ const Pacman = (() => {
     'block-doom': '1.9', cmatrix: '2.0', hyprland: '0.47', gimp: '2.10.38',
   };
   // Packages that ship a graphical binary → run on the Linux (Arch) kernel.
-  const guiApps = new Set(['firefox', 'block-browser', 'gimp', 'neovim', 'block-doom', 'hyprland']);
+  const guiApps = new Set(['firefox', 'block-browser', 'gimp', 'neovim', 'block-doom', 'hyprland', 'htop']);
   const installed = new Map([
     ['base', '1.0'], ['linux', '6.14.2-arch1'], ['limesh', '1.0'],
     ['pacman', '7.0.0'], ['block9', '9.2.2'], ['neofetch', '7.1.0'],
@@ -108,7 +108,7 @@ const Commands = (() => {
   // ---- long-form help sections ----------------------------------------
   const CATS = {
     'Hybrid kernel & LIMAWEK': ['kernel', 'limawek', 'dos', 'run'],
-    'File & system (modern)': ['ls', 'cd', 'pwd', 'cat', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'tree', 'grep', 'find', 'echo', 'clear', 'uname', 'whoami', 'date', 'uptime', 'ps', 'kill', 'free', 'df', 'history', 'man', 'env', 'alias'],
+    'File & system (modern)': ['ls', 'cd', 'pwd', 'cat', 'head', 'tail', 'wc', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'tree', 'grep', 'find', 'which', 'echo', 'clear', 'uname', 'hostname', 'whoami', 'date', 'uptime', 'ps', 'kill', 'htop', 'free', 'df', 'ping', 'history', 'man', 'env', 'alias', 'edit'],
     'MS-DOS verbs (→ real-mode)': ['dir', 'cls', 'type', 'copy', 'del', 'ren', 'ver', 'mem', 'md', 'rd', 'chdir', 'time', 'prompt', 'path'],
     'PowerShell': ['get-childitem', 'get-content', 'set-location', 'get-location', 'write-host', 'get-process', 'get-date', 'get-command', 'get-help', 'clear-host', 'new-item', 'remove-item', '$psversiontable'],
     'Package manager (pacman)': ['pacman', 'apt'],
@@ -146,7 +146,8 @@ const Commands = (() => {
       ctx.print('\n' + cat, 'accent');
       ctx.print('  ' + list.join('  '));
     }
-    ctx.print('\nTip: commands are case-insensitive. Try `neofetch`, then `open browser`.', 'dim');
+    ctx.print('\nTips: commands are case-insensitive. limesh supports pipes, redirection,', 'dim');
+    ctx.print('and chaining:   help | grep pacman     ls > listing.txt     mkdir x && cd x', 'dim');
   });
   def(['get-help', 'man'], 'Show help for a command (PowerShell/Unix style).',
     (ctx, a) => cmds.help.run(ctx, a));
@@ -179,15 +180,14 @@ const Commands = (() => {
   }
   def(['ls', 'dir', 'get-childitem', 'gci'], 'List directory contents.', doList, { usage: 'ls [-l] [path]' });
 
-  def(['cd', 'chdir', 'set-location', 'sl?'], 'Change the working directory.', (ctx, a) => {
-    // (note: real `sl` is the steam-locomotive gag; PowerShell's sl==Set-Location.
-    //  We route the gag through its own name below and keep cd here.)
+  def(['cd', 'chdir', 'set-location'], 'Change the working directory.', (ctx, a) => {
+    // (real `sl` is the steam-locomotive gag, defined below — PowerShell's
+    //  sl alias loses that fight.)
     const t = a[0] || '~';
     const abs = resolve(ctx, t);
     if (!Kernel.fs.isDir(abs)) return ctx.print('cd: not a directory: ' + t, 'err');
     ctx.shell.cwd = abs;
   }, { usage: 'cd <dir>' });
-  def(['set-location'], 'Set the working directory (PowerShell).', (ctx, a) => cmds.cd.run(ctx, a));
 
   def(['pwd', 'get-location', 'gl'], 'Print the working directory.', (ctx) => ctx.print(ctx.shell.cwd));
 
@@ -198,7 +198,7 @@ const Commands = (() => {
     ctx.print(Kernel.fs.read(abs).replace(/\n$/, ''));
   });
 
-  def(['mkdir', 'md', 'new-item?'], 'Create a directory.', (ctx, a) => {
+  def(['mkdir', 'md'], 'Create a directory.', (ctx, a) => {
     if (!a[0]) return ctx.print('usage: mkdir <dir>', 'err');
     try { Kernel.fs.mkdir(resolve(ctx, a[0])); } catch (e) { ctx.print('mkdir: ' + e.message, 'err'); }
   });
@@ -254,14 +254,16 @@ const Commands = (() => {
     ctx.print(out.join('\n'));
   });
 
-  def(['grep', 'select-string'], 'Search file contents for a pattern.', (ctx, a) => {
-    if (a.length < 2) return ctx.print('usage: grep <pattern> <file>', 'err');
+  def(['grep', 'select-string'], 'Search file contents for a pattern (also a pipe filter).', (ctx, a) => {
+    if (a.length < 2) return ctx.print('usage: grep <pattern> <file>    (or:  <cmd> | grep <pattern>)', 'err');
     const [pat, f] = a;
     const abs = resolve(ctx, f);
     if (!Kernel.fs.isFile(abs)) return ctx.print('grep: ' + f + ': No such file', 'err');
-    const re = new RegExp(pat, 'i');
+    let re, reMark;
+    try { re = new RegExp(pat, 'i'); reMark = new RegExp('(' + pat + ')', 'ig'); }
+    catch (_) { return ctx.print('grep: invalid pattern: ' + pat, 'err'); }
     Kernel.fs.read(abs).split('\n').forEach((ln) => {
-      if (re.test(ln)) ctx.printHTML(esc(ln).replace(new RegExp('(' + pat + ')', 'ig'), '<mark>$1</mark>'));
+      if (re.test(ln)) ctx.printHTML(esc(ln).replace(reMark, '<mark>$1</mark>'));
     });
   });
   def('find', 'Recursively list paths under a directory.', (ctx, a) => {
@@ -270,6 +272,55 @@ const Commands = (() => {
       ctx.print(abs);
       if (Kernel.fs.isDir(abs)) for (const name of Object.keys(Kernel.fs.list(abs))) walk(abs + '/' + name);
     })(start);
+  });
+
+  function readLines(ctx, f) {
+    const abs = resolve(ctx, f);
+    if (!Kernel.fs.isFile(abs)) { ctx.print(f + ': No such file', 'err'); return null; }
+    return Kernel.fs.read(abs).replace(/\n$/, '').split('\n');
+  }
+  def('head', 'Print the first lines of a file (also a pipe filter).', (ctx, a) => {
+    const n = a.includes('-n') ? Number(a[a.indexOf('-n') + 1]) || 10 : 10;
+    const f = a.filter((x) => x !== '-n' && !/^\d+$/.test(x))[0];
+    if (!f) return ctx.print('usage: head [-n N] <file>', 'err');
+    const lines = readLines(ctx, f); if (lines) lines.slice(0, n).forEach((l) => ctx.print(l));
+  });
+  def('tail', 'Print the last lines of a file (also a pipe filter).', (ctx, a) => {
+    const n = a.includes('-n') ? Number(a[a.indexOf('-n') + 1]) || 10 : 10;
+    const f = a.filter((x) => x !== '-n' && !/^\d+$/.test(x))[0];
+    if (!f) return ctx.print('usage: tail [-n N] <file>', 'err');
+    const lines = readLines(ctx, f); if (lines) lines.slice(-n).forEach((l) => ctx.print(l));
+  });
+  def('wc', 'Count lines, words, chars of a file (also a pipe filter).', (ctx, a) => {
+    const f = a.filter((x) => !x.startsWith('-'))[0];
+    if (!f) return ctx.print('usage: wc <file>', 'err');
+    const lines = readLines(ctx, f); if (!lines) return;
+    const text = lines.join('\n');
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    ctx.print(`      ${lines.length}      ${words}      ${text.length}  ${f}`);
+  });
+  def('which', 'Locate a command.', (ctx, a) => {
+    const n = (a[0] || '').toLowerCase();
+    if (!n) return ctx.print('usage: which <command>', 'err');
+    ctx.print(cmds[n] ? '/usr/bin/' + n : 'which: no ' + n + ' in (/bin:/usr/bin)', cmds[n] ? '' : 'err');
+  });
+  def('hostname', 'Print the host name.', (ctx) => ctx.print(Kernel.system.host));
+  def('ping', 'Ping a host (pretend network).', (ctx, a) => {
+    const host = a.find((x) => !x.startsWith('-')) || 'block.net';
+    ctx.print('PING ' + host + ' (10.0.0.9) 56(84) bytes of data.');
+    let total = 0;
+    for (let i = 1; i <= 4; i++) { const ms = +(8 + Math.random() * 20).toFixed(1); total += ms; ctx.print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + ms + ' ms'); }
+    ctx.print('\n--- ' + host + ' ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss, avg ' + (total / 4).toFixed(1) + ' ms');
+  });
+  def(['htop', 'top'], 'Open the process viewer (Activity Monitor).', (ctx) => {
+    ctx.gui.openApp('monitor');
+    ctx.print('htop: opened Activity Monitor (BlockWM window).', 'dim');
+  });
+  def('edit', 'Open a file in the BLOCK Editor.', (ctx, a) => {
+    if (!a[0]) return ctx.print('usage: edit <file>', 'err');
+    const abs = resolve(ctx, a[0]);
+    ctx.gui.openApp('editor', { path: abs });
+    ctx.print('editing ' + abs, 'dim');
   });
 
   def(['echo', 'write-host', 'write-output', 'print'], 'Print text.', (ctx, a, raw) => {
@@ -303,7 +354,8 @@ const Commands = (() => {
   def(['kill', 'stop-process'], 'Kill a process by PID.', (ctx, a) => {
     const pid = Number(a.find((x) => /^\d+$/.test(x)));
     if (!pid) return ctx.print('usage: kill <pid>', 'err');
-    ctx.print(Kernel.kill(pid) ? 'killed ' + pid : 'kill: no such process: ' + pid, Kernel.kill ? '' : 'err');
+    const ok = Kernel.kill(pid);
+    ctx.print(ok ? 'killed ' + pid : 'kill: no such process: ' + pid, ok ? '' : 'err');
   });
   def(['free', 'mem'], 'Show memory usage.', (ctx) => {
     const used = Kernel.memUsedMb(), tot = Kernel.system.memTotalMb;
@@ -362,7 +414,10 @@ const Commands = (() => {
       return;
     }
     if (flags.includes('R')) {   // remove
-      for (const n of names) ctx.print(Pacman.remove(n) ? 'removed ' + n : 'error: target not found: ' + n, Pacman.isInstalled(n) ? 'err' : '');
+      for (const n of names) {
+        const ok = Pacman.remove(n);
+        ctx.print(ok ? 'removed ' + n : 'error: target not found: ' + n, ok ? '' : 'err');
+      }
       return;
     }
     if (flags.includes('Q')) {   // query
@@ -435,7 +490,7 @@ const Commands = (() => {
     const proc = Kernel.spawn(app, 40 + Math.floor(Math.random() * 60), 'linux');
     ctx.print('[' + proc.pid + '] ' + app + ' running on the Linux (Arch) kernel.', 'accent');
     // Give it a window if it maps to a known GUI app.
-    const winApp = ({ firefox: 'browser', 'block-browser': 'browser', gimp: 'editor', neovim: 'editor', 'block-doom': 'about' })[app];
+    const winApp = ({ firefox: 'browser', 'block-browser': 'browser', gimp: 'editor', neovim: 'editor', htop: 'monitor', 'block-doom': 'about' })[app];
     if (Pacman.isGui(app)) ctx.gui.openApp(winApp || 'about', { procName: app, pid: proc.pid });
   }, { usage: 'run <app>   (installed third-party Linux app)' });
   def(['dos', 'command.com'], 'Drop into an immersive MS-DOS real-mode session.', (ctx) => {
@@ -476,12 +531,15 @@ const Commands = (() => {
   def(['browser', 'block-browser', 'firefox'], 'Open the BLOCK web browser.', (ctx) => ctx.gui.openApp('browser'));
   def(['theme'], 'Switch light/dark theme.', (ctx, a) => {
     const t = a[0] || (document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-    document.documentElement.dataset.theme = t;
+    if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('block.theme', t); } catch (_) {}
     ctx.print('theme → ' + t);
   });
-  def('wallpaper', 'Cycle the desktop wallpaper.', (ctx, a) => {
-    ctx.gui.cycleWallpaper(a[0]); ctx.print('wallpaper set.');
-  });
+  def('wallpaper', 'Set or cycle the desktop wallpaper.', (ctx, a) => {
+    const now = ctx.gui.cycleWallpaper(a[0]);
+    ctx.print('wallpaper → ' + now + '   (options: ' + ctx.gui.wallpapers().join(', ') + ')');
+  }, { usage: 'wallpaper [lime|platinum|dusk|noir]' });
 
   def(['fallback-gui', 'fallbackgui'], 'Enable/disable the richer fallback GUI.', (ctx, a) => {
     const arg = (a[0] || '').replace(/^~?/, '');

@@ -48,8 +48,8 @@ const Kernel = (() => {
 
   const system = {
     name: 'LIMEdit BLOCK',
-    codename: 'Sour Brick',
-    version: '1.0.0',
+    codename: 'Second Squeeze',
+    version: '1.1.0',
     kernel: 'archdos-hybrid 1.0',
     arch: 'x86_64',
     shell: 'limesh 1.0',
@@ -121,11 +121,11 @@ const Kernel = (() => {
     etc: dir({
       'os-release': file(
         'NAME="LIMEdit BLOCK"\nID=limeblock\nID_LIKE="arch dos"\n' +
-        'VERSION="1.0.0 (Sour Brick)"\nPRETTY_NAME="LIMEdit BLOCK 1.0.0"\n' +
+        'VERSION="1.1.0 (Second Squeeze)"\nPRETTY_NAME="LIMEdit BLOCK 1.1.0"\n' +
         'KERNEL="archdos-hybrid"\nHOME_URL="lime://welcome"\n'),
       'motd': file('LIMEdit BLOCK — the GUI is the terminal.\n' +
                    'A hybrid kernel: LIMAWEK arbitrates DOS real-mode ⇄ Linux (Arch).\n' +
-                   'Type `help`, `neofetch`, `kernel`, or `limawek status`.\n'),
+                   'Type `help`, `neofetch`, `kernel` — pipes work too:  help | grep dos\n'),
     }),
     usr: dir({ bin: dir(), lib: dir({ modules: dir() }), share: dir({ doc: dir() }) }),
     var: dir({ log: dir({ 'kern.log': file('archdos: hybrid kernel online\n') }) }),

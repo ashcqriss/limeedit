@@ -4,25 +4,38 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LIMEdit BLOCK</title>
+  <script>
+    // Apply saved theme + motion preference before first paint (no flash).
+    (function () {
+      try {
+        if (localStorage.getItem('block.theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+        if (localStorage.getItem('block.motion') === 'off') document.documentElement.classList.add('no-motion');
+      } catch (_) {}
+    })();
+  </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟩</text></svg>" />
   <link rel="stylesheet" href="css/block.css" />
 </head>
 <body>
-  <!-- ============================ BOOT SCREEN ============================ -->
+  <!-- ====================== BOOT: POST → splash ======================= -->
   <div id="boot" class="boot">
     <pre id="boot-log" class="boot-log" aria-live="polite"></pre>
-    <div class="boot-brand">
-      <div class="boot-logo">🟩</div>
-      <div class="boot-name">LIMEdit&nbsp;BLOCK</div>
-      <div class="boot-sub">arch·dos hybrid kernel</div>
-      <div class="boot-bar"><i id="boot-bar-fill"></i></div>
+    <div id="boot-splash" class="boot-splash" hidden>
+      <div class="splash-card">
+        <div class="splash-logo">🟩</div>
+        <h1>LIMEdit&nbsp;BLOCK</h1>
+        <p class="splash-sub">Welcome to LIMEdit BLOCK.</p>
+        <div class="boot-bar"><i id="boot-bar-fill"></i></div>
+        <div id="splash-ext" class="splash-ext" title="Loading extensions…"></div>
+      </div>
+      <div class="splash-foot">archdos-hybrid 1.0 · LIMAWEK · BlockWM</div>
     </div>
   </div>
 
-  <!-- ============================ DESKTOP =============================== -->
+  <!-- ============================ DESKTOP ============================== -->
   <div id="desktop" class="desktop" hidden>
 
-    <!-- System 9 / macOS-style top menu bar -->
+    <!-- System 9-style Platinum menu bar -->
     <header id="menubar" class="menubar">
       <button class="mb-item mb-logo" data-menu="apple" title="LIMEdit BLOCK">🟩</button>
       <button class="mb-item mb-app" data-menu="file">File</button>
@@ -33,18 +46,21 @@
       <span id="mb-kernel" class="mb-status mb-kernel" title="Hybrid kernel — active personality (LIMAWEK)">◆ arch</span>
       <span id="mb-wm" class="mb-status" title="Window manager (always on)">▚ BlockWM</span>
       <span id="mb-fallback" class="mb-status mb-fallback" title="Fallback-GUI state">GUI: shell</span>
-      <span id="mb-batt" class="mb-status" title="Battery">🔋 98%</span>
+      <span class="mb-status" title="Battery">🔋 98%</span>
       <span id="mb-clock" class="mb-status mb-clock">--:--</span>
-      <button class="mb-item mb-appmenu" data-menu="apps" title="Applications">▦</button>
+      <button class="mb-item mb-appmenu" data-menu="apps" title="Launch an application">▦</button>
+      <button class="mb-item mb-appwin" id="mb-appwin" data-menu="windows" title="Open windows">▤ console</button>
     </header>
 
     <!-- Dropdown menus render here -->
     <div id="menu-drop" class="menu-drop" hidden></div>
 
-    <!-- Windows live here -->
-    <main id="windows" class="windows"></main>
+    <!-- Windows + desktop icons live here -->
+    <main id="windows" class="windows">
+      <div id="desktop-icons" class="desktop-icons"></div>
+    </main>
 
-    <!-- Bottom dock / taskbar -->
+    <!-- Launcher dock -->
     <footer id="dock" class="dock"></footer>
   </div>
 
