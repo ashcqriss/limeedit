@@ -69,12 +69,19 @@
     desktop.hidden = false;
     GUI.init();                                // boots the always-on root console
     const root = GUI.root();
-    setTimeout(() => root && root.shell && root.shell.execute('neofetch'), 220);
+    // The hybrid comes up in DOS real-mode: show the DOS banner, then flex.
+    setTimeout(() => {
+      if (!root || !root.shell) return;
+      root.shell.execute('ver');
+      root.shell.execute('neofetch');
+    }, 220);
     setTimeout(() => { boot.hidden = true; }, 480);
   }
 
   function skip() { if (!skipped) { skipped = true; finish(); } }
   boot.addEventListener('click', skip);
   window.addEventListener('keydown', function once() { skip(); window.removeEventListener('keydown', once); });
-  window.addEventListener('DOMContentLoaded', () => setTimeout(postLine, 250));
+  // Works both as a standalone page and embedded in an already-loaded document.
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', () => setTimeout(postLine, 250));
+  else setTimeout(postLine, 250);
 })();

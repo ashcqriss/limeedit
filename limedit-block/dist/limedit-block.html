@@ -1,0 +1,2686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LIMEdit BLOCK</title>
+  <script>
+    // Apply saved theme + motion preference before first paint (no flash).
+    (function () {
+      try {
+        if (localStorage.getItem('block.theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+        if (localStorage.getItem('block.motion') === 'off') document.documentElement.classList.add('no-motion');
+      } catch (_) {}
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟩</text></svg>" />
+  <style>
+/* ==========================================================================
+   LIMEdit BLOCK — block.css
+   System 9.2.2 "Platinum" chrome, modernised: pinstriped active title bars,
+   a platinum menu bar with an Application menu, desktop icons, a launcher
+   dock, animated windows. Light + dark themes, four wallpapers. Fully
+   self-contained (no web fonts, no external assets).
+   ========================================================================== */
+
+:root {
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --lime: #7ed321;
+  --lime-deep: #4f9a06;
+  --accent: #35c759;
+
+  --bg: #e8ebf0;
+  --panel: #f2f3f6;
+  --panel-2: #ffffff;
+  --ink: #1d2129;
+  --ink-dim: #6b7280;
+  --line: #c7ccd4;
+  --bar-a: #fdfdfe;            /* platinum menu bar gradient */
+  --bar-b: #e4e7ec;
+  --bar-ink: #23272f;
+  --stripe-a: #f5f7f9;         /* active title pinstripes */
+  --stripe-b: #dfe4ea;
+  --title-inactive: #ececef;
+  --shadow: 0 14px 40px rgba(20, 30, 50, 0.30), 0 2px 8px rgba(20, 30, 50, 0.18);
+  --term-bg: rgba(11, 16, 13, 0.90);
+  --term-solid: #0b100d;
+  --term-ink: #d7e0ea;
+}
+:root[data-theme="dark"] {
+  --bg: #0b0e14;
+  --panel: #181d25;
+  --panel-2: #1e242e;
+  --ink: #e6edf3;
+  --ink-dim: #8b95a3;
+  --line: #313947;
+  --bar-a: #232a34;
+  --bar-b: #171c24;
+  --bar-ink: #e6edf3;
+  --stripe-a: #2a323e;
+  --stripe-b: #1e242e;
+  --title-inactive: #1b2028;
+  --shadow: 0 16px 50px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.5);
+  --term-bg: rgba(5, 8, 6, 0.92);
+  --term-solid: #050806;
+  --term-ink: #d7e0ea;
+}
+
+* { box-sizing: border-box; }
+/* A class-level `display` must not beat the [hidden] attribute. */
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { font-family: var(--ui); color: var(--ink); overflow: hidden; }
+
+/* Motion kill-switch (Settings → Reduce motion, or OS preference). */
+.no-motion *, .no-motion *::before, .no-motion *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- wallpapers ---------- */
+body.wp-lime     { background: radial-gradient(120% 120% at 20% 0%, #a8e063 0%, #56ab2f 55%, #245c1f 100%); }
+body.wp-platinum { background: linear-gradient(180deg, #b9bfc7 0%, #969da6 100%); }
+body.wp-dusk     { background: radial-gradient(120% 120% at 80% 10%, #3a1c71 0%, #d76d77 55%, #ffaf7b 100%); }
+body.wp-noir     { background: radial-gradient(120% 120% at 50% 0%, #2b2e33 0%, #0b0e14 100%); }
+
+/* ============================ BOOT ============================ */
+.boot { position: fixed; inset: 0; z-index: 999; background: #05070a; transition: opacity 0.45s; }
+.boot.done { opacity: 0; pointer-events: none; }
+.boot-log {
+  margin: 0; padding: 24px 28px; font: 12.5px/1.55 var(--mono);
+  color: #8de08f; white-space: pre-wrap; height: 100%; overflow: hidden;
+}
+.boot-splash {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: linear-gradient(180deg, #c3c9d1 0%, #9aa1ab 100%);
+}
+.splash-card {
+  background: linear-gradient(180deg, #fdfdfe, #eceef2);
+  border: 1px solid #9aa1ab; border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(20, 30, 50, 0.35), inset 0 1px 0 #fff;
+  padding: 34px 54px 26px; text-align: center; color: #23272f;
+}
+.splash-logo { font-size: 64px; line-height: 1; animation: pulse 1.8s ease-in-out infinite; }
+.splash-card h1 { margin: 10px 0 2px; font-size: 28px; letter-spacing: 4px; }
+.splash-sub { margin: 0 0 18px; color: #5a6270; font-size: 13px; }
+.boot-bar { width: 300px; height: 10px; margin: 0 auto; background: #cfd4db; border: 1px solid #9aa1ab; border-radius: 6px; overflow: hidden; }
+.boot-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--lime-deep), var(--lime)); transition: width 0.18s; }
+.splash-ext { margin-top: 18px; min-height: 30px; display: flex; gap: 10px; justify-content: center; font-size: 22px; }
+.splash-ext span { animation: ext-pop 0.25s ease-out backwards; }
+.splash-foot { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; color: #4b525d; font: 11px var(--mono); letter-spacing: 1px; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); filter: drop-shadow(0 0 16px #7ed321); } }
+@keyframes ext-pop { from { transform: scale(0.2) translateY(8px); opacity: 0; } }
+
+/* ============================ DESKTOP ============================ */
+.desktop { position: fixed; inset: 0; display: flex; flex-direction: column; }
+body.poweroff .desktop { filter: brightness(0.04) saturate(0); transition: filter 1s; pointer-events: none; }
+
+/* ---------- Platinum menu bar ---------- */
+.menubar {
+  height: 30px; flex: 0 0 30px;
+  display: flex; align-items: center; gap: 1px;
+  padding: 0 8px;
+  background: linear-gradient(180deg, var(--bar-a), var(--bar-b));
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  color: var(--bar-ink);
+  font-size: 13px; z-index: 500; position: relative; user-select: none;
+}
+:root[data-theme="dark"] .menubar { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset; }
+.mb-item {
+  background: none; border: 0; color: inherit; font: inherit;
+  padding: 2px 10px; height: 24px; border-radius: 5px; cursor: default; white-space: nowrap;
+}
+.mb-item:hover, .mb-item.on { background: var(--accent); color: #fff; }
+.mb-logo { font-size: 15px; padding: 2px 9px; }
+.mb-app { font-weight: 700; }
+.mb-spacer { flex: 1; }
+.mb-status {
+  font-size: 12px; padding: 0 9px; height: 18px; display: inline-flex; align-items: center;
+  border-left: 1px solid var(--line); opacity: 0.9; white-space: nowrap;
+}
+.mb-fallback { font-variant: small-caps; letter-spacing: 0.5px; }
+.mb-clock { font-variant-numeric: tabular-nums; font-weight: 600; }
+.mb-appmenu { font-size: 15px; }
+.mb-appwin { font-weight: 600; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 860px) { #mb-wm, .mb-status[title="Battery"] { display: none; } }
+
+.menu-drop {
+  position: fixed; min-width: 230px;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 5px; z-index: 600;
+  animation: menu-in 0.12s ease-out;
+}
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } }
+.menu-drop hr { border: 0; border-top: 1px solid var(--line); margin: 5px 6px; }
+.menu-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 24px;
+  width: 100%; text-align: left;
+  background: none; border: 0; color: inherit; font: 13px var(--ui);
+  padding: 6px 12px; border-radius: 7px; cursor: default;
+}
+.menu-item:hover { background: var(--accent); color: #fff; }
+.menu-item .ms { font-size: 11px; color: var(--ink-dim); }
+.menu-item:hover .ms { color: rgba(255, 255, 255, 0.85); }
+.menu-item.disabled { opacity: 0.4; pointer-events: none; }
+
+/* ---------- desktop icons (float on the root console, top-right) ---------- */
+.desktop-icons { position: absolute; top: 46px; right: 16px; display: flex; flex-direction: column; gap: 20px; z-index: 5; }
+.dicon { width: 88px; text-align: center; cursor: default; user-select: none; }
+.dicon i { font-style: normal; font-size: 40px; display: block; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45)); transition: transform 0.12s; }
+.dicon:hover i { transform: scale(1.08); }
+.dicon small {
+  display: inline-block; margin-top: 3px; font-size: 11px; color: #fff;
+  background: rgba(0, 0, 0, 0.28); border-radius: 5px; padding: 1px 7px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.dicon.sel small { background: var(--accent); }
+
+/* ---------- windows ---------- */
+.windows { position: relative; flex: 1; overflow: hidden; }
+.win {
+  position: absolute; display: flex; flex-direction: column;
+  background: var(--panel); border-radius: 10px;
+  box-shadow: var(--shadow); overflow: hidden;
+  border: 1px solid var(--line);
+  min-width: 320px; min-height: 180px;
+  animation: win-open 0.18s ease-out;
+}
+@keyframes win-open { from { opacity: 0; transform: scale(0.94) translateY(10px); } }
+.win.minimizing { opacity: 0; transform: translateY(45vh) scale(0.12); transition: transform 0.22s ease-in, opacity 0.22s ease-in; }
+.win.minimized { display: none; }
+.win.zoomed { left: 10px !important; top: 36px !important; width: calc(100vw - 20px) !important; height: calc(100vh - 92px) !important; }
+
+.win-title {
+  height: 30px; flex: 0 0 30px;
+  display: grid; grid-template-columns: 66px 1fr 90px; align-items: center;
+  padding: 0 10px; cursor: default; user-select: none;
+  background: var(--title-inactive);
+  border-bottom: 1px solid var(--line);
+}
+/* Platinum pinstripes only on the focused window — pure System 9. */
+.win.active > .win-title {
+  background: repeating-linear-gradient(180deg, var(--stripe-a) 0 2px, var(--stripe-b) 2px 4px);
+}
+.win-lights { display: flex; gap: 8px; }
+.lc { width: 12px; height: 12px; border-radius: 50%; display: inline-block; cursor: pointer; border: 1px solid rgba(0, 0, 0, 0.14); }
+.lc-close { background: #ff5f57; } .lc-min { background: #febc2e; } .lc-zoom { background: #28c840; }
+.win:not(.active) .lc { background: #c9ccd2; }
+.lc-off { background: #c9ccd2 !important; opacity: 0.5; cursor: not-allowed; }
+.win-name {
+  font-size: 12.5px; font-weight: 700; text-align: center; color: var(--ink-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--title-inactive); padding: 1px 10px; border-radius: 5px; justify-self: center; max-width: 100%;
+}
+.win.active .win-name { color: var(--ink); }
+.win-proc { justify-self: end; font: 10.5px var(--mono); color: var(--ink-dim); background: var(--title-inactive); padding: 1px 7px; border-radius: 5px; }
+.win-body { flex: 1; overflow: auto; position: relative; }
+
+.win-grip {
+  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; z-index: 20;
+  cursor: nwse-resize; opacity: 0.6;
+  background:
+    linear-gradient(135deg, transparent 0 55%, var(--ink-dim) 55% 60%, transparent 60% 70%, var(--ink-dim) 70% 75%, transparent 75% 85%, var(--ink-dim) 85% 90%, transparent 90%);
+}
+
+/* ---- always-on root console (the GUI *is* the terminal) ---- */
+.win-root {
+  left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
+  border-radius: 0; border: 0; box-shadow: none; animation: none; background: transparent;
+}
+.win-root .win-title { border-radius: 0; }
+.win-proc { pointer-events: none; }
+
+/* ---------- launcher dock ---------- */
+.dock {
+  flex: 0 0 auto; display: flex; gap: 10px; justify-content: center; align-items: end;
+  padding: 6px 14px 10px; z-index: 400;
+}
+.dock-btn {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.28));
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 13px;
+  padding: 6px 11px 8px; cursor: pointer; color: #1d2129; min-width: 62px;
+  transition: transform 0.13s;
+}
+:root[data-theme="dark"] .dock-btn { background: linear-gradient(180deg, rgba(40, 46, 56, 0.72), rgba(24, 29, 37, 0.62)); color: #e6edf3; border-color: rgba(255, 255, 255, 0.14); }
+.dock-btn:hover { transform: translateY(-5px) scale(1.07); }
+.dock-btn span { font-size: 21px; line-height: 1.15; }
+.dock-btn small { font-size: 9px; opacity: 0.85; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-btn .dot {
+  position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  opacity: 0; transition: opacity 0.15s;
+}
+.dock-btn.running .dot { opacity: 1; }
+
+/* ============================ TERMINAL ============================ */
+.term {
+  background: var(--term-solid); color: var(--term-ink);
+  font-family: var(--mono); font-size: 13px; line-height: 1.52;
+  padding: 12px 14px; height: 100%; overflow: auto; cursor: text;
+}
+/* The root console IS the desktop, and it looks like DOS: near-black screen,
+   light-gray text. The wallpaper only tints it faintly through the alpha. */
+.win-root .term {
+  background: rgba(0, 0, 0, 0.93);
+  color: #c9c9c9;
+  padding-right: 118px;                          /* lane for desktop icons */
+}
+.win-root .term-input { color: #e6e6e6; }
+.term-line { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; }
+.term-echo { color: #eaf2fb; }
+.term-prompt { font-weight: 600; }
+.term-prompt.arch { color: var(--lime); }
+.term-prompt.dos { color: #cfcfcf; font-weight: 500; }
+.term-inputline { display: flex; align-items: baseline; }
+.term-input { flex: 1; background: none; border: 0; outline: none; color: var(--term-ink); font: inherit; caret-color: var(--lime); }
+.term-line.err { color: #ff7b72; }
+.term-line.accent { color: var(--lime); }
+.term-line.dim { color: #7d8899; }
+.term-line.kmsg { color: #f2a33c; font-style: italic; border-left: 2px solid #f2a33c; padding-left: 8px; margin-left: -10px; }
+.term-line .dir { color: #6cb6ff; font-weight: 600; }
+.term-line .fileo { color: var(--term-ink); }
+.term-line mark { background: rgba(126, 211, 33, 0.35); color: inherit; }
+
+/* ---- kernel in real-mode: fully opaque black + gray caret ---- */
+body.kernel-dos .win-root .term { background: #000; transition: background 0.25s; }
+body.kernel-dos .win-root .term-input { caret-color: #c9c9c9; }
+body.kernel-dos .win-root .term-echo { color: #eaeaea; }
+
+/* ---- immersive DOS (`dos`): full CRT — chrome recedes ---- */
+body.dosmode .menubar { background: #101010; color: #a9a9a9; border-bottom-color: #262626; box-shadow: none; }
+body.dosmode .mb-item:hover, body.dosmode .mb-item.on { background: #2e2e2e; color: #eee; }
+body.dosmode .dock, body.dosmode .desktop-icons { display: none; }
+body.dosmode .win-root .win-title { background: #0a0a0a; border-bottom-color: #1e1e1e; }
+body.dosmode .win-root .win-name { color: #8a8a8a; background: transparent; }
+body.dosmode .win-root .term { background: #000; color: #cfcfcf; padding-right: 14px; }
+body.dosmode .win-root .win-body::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.26) 3px);
+  animation: crt-flicker 5s infinite;
+}
+@keyframes crt-flicker { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.8; } }
+
+/* ---- kernel indicator ---- */
+.mb-kernel { font-variant: small-caps; font-weight: 700; letter-spacing: 0.4px; color: var(--lime-deep); }
+body.kernel-dos .mb-kernel { color: #b9821f; }
+:root[data-theme="dark"] .mb-kernel { color: var(--lime); }
+
+/* ---------- neofetch ---------- */
+.neofetch { display: flex; gap: 26px; padding: 6px 0 10px; flex-wrap: wrap; }
+.nf-art { margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.08; }
+.nf-artrow { display: block; }
+.nf-info { font-family: var(--mono); font-size: 12.5px; min-width: 280px; }
+.nf-title { color: var(--lime); font-weight: 700; }
+.nf-rule { color: #4f9a06; }
+.nf-row b { color: #6cb6ff; }
+.nf-dot { color: var(--ink-dim); }
+.nf-swatch { display: flex; margin-top: 6px; }
+.nf-swatch span { width: 20px; height: 13px; display: inline-block; }
+
+.lolcat { margin: 4px 0; font-family: var(--mono); font-size: 12px; line-height: 1.05; }
+.matrix { margin: 0; color: #35e05a; font-family: var(--mono); font-size: 12px; line-height: 1.05; text-shadow: 0 0 6px #1a8b2f; }
+
+/* ============================ BROWSER ============================ */
+.browser { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); color: var(--ink); }
+.lite-note { background: #fff4cf; color: #7a5b00; padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #e6d48a; }
+:root[data-theme="dark"] .lite-note { background: #3a3210; color: #e8d38a; border-color: #5a4d18; }
+.br-bar { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.br-btn {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 8px; padding: 5px 11px; font: 13px var(--ui); cursor: pointer;
+}
+.br-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.br-addr { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: 13px var(--mono); background: var(--panel-2); color: var(--ink); }
+.br-marks { display: flex; gap: 4px; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.br-mark { background: none; border: 0; border-radius: 6px; padding: 3px 9px; font: 12px var(--ui); color: var(--ink-dim); cursor: pointer; }
+.br-mark:hover { background: rgba(126, 211, 33, 0.2); color: var(--ink); }
+.br-page { flex: 1; overflow: auto; padding: 26px 30px; line-height: 1.6; }
+.browser.lite .br-page { max-width: 640px; }
+.br-page h1 { font-size: 26px; margin: 0 0 12px; }
+.br-page pre { background: var(--term-solid); color: var(--term-ink); padding: 12px 14px; border-radius: 10px; overflow: auto; font: 12.5px var(--mono); }
+.br-page code { background: rgba(126, 211, 33, 0.16); padding: 1px 6px; border-radius: 5px; font: 12px var(--mono); }
+.br-page a { color: var(--lime-deep); text-decoration: none; font-weight: 600; }
+:root[data-theme="dark"] .br-page a { color: var(--lime); }
+.br-page a:hover { text-decoration: underline; }
+.pg-hero { text-align: center; padding: 20px 0; }
+.pg-logo { font-size: 64px; }
+.pg-hero h1 { font-size: 30px; }
+.pg-links { display: flex; gap: 16px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+.pg-links a { padding: 8px 16px; border: 1px solid var(--lime); border-radius: 10px; }
+.pg-apps { line-height: 2; }
+.pg-dim { color: var(--ink-dim); }
+.pg-h2 { margin: 26px 0 4px; font-size: 18px; }
+
+/* real-internet view */
+.br-page.br-webpage { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.br-info {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 5px 12px; font-size: 11.5px; color: var(--ink-dim);
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.br-pop { color: var(--lime-deep); font-weight: 700; text-decoration: none; white-space: nowrap; }
+:root[data-theme="dark"] .br-pop { color: var(--lime); }
+.br-frame { flex: 1; width: 100%; border: 0; background: #fff; }
+
+/* ============================ FILES ============================ */
+.files { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); color: var(--ink); }
+.files-tools { display: flex; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.files-path { display: flex; gap: 2px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: var(--ink-dim); background: var(--panel); flex-wrap: wrap; }
+.files-crumb { background: none; border: 0; color: var(--lime-deep); font: 12px var(--mono); cursor: pointer; padding: 1px 3px; border-radius: 4px; }
+:root[data-theme="dark"] .files-crumb { color: var(--lime); }
+.files-crumb:hover { background: rgba(126, 211, 33, 0.2); }
+.files-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+.files-list { overflow: auto; border-right: 1px solid var(--line); }
+.file-row { display: flex; gap: 8px; align-items: center; padding: 7px 14px; cursor: default; font-size: 13px; }
+.file-row:hover { background: rgba(126, 211, 33, 0.14); }
+.file-row.sel { background: var(--accent); color: #fff; }
+.file-row.dir { font-weight: 600; }
+.file-meta { margin-left: auto; font: 11px var(--mono); color: var(--ink-dim); }
+.file-row.sel .file-meta { color: rgba(255, 255, 255, 0.8); }
+.files-preview { margin: 0; padding: 14px; overflow: auto; font: 12px var(--mono); white-space: pre-wrap; color: var(--ink); }
+
+/* ============================ ABOUT ============================ */
+.about { padding: 22px 26px; background: var(--panel-2); color: var(--ink); height: 100%; overflow: auto; }
+.about-head { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
+.about-logo { font-size: 60px; }
+.about-head h1 { margin: 0; font-size: 26px; }
+.about-ver { color: var(--ink-dim); }
+.about .neofetch { background: var(--term-solid); color: var(--term-ink); border-radius: 12px; padding: 14px; margin: 12px 0; }
+.about .nf-info { color: var(--term-ink); }
+.about-info { line-height: 1.6; }
+.about-credit { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: var(--ink-dim); }
+
+/* ============================ EDITOR ============================ */
+.editor { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); }
+.ed-bar { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.ed-path { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: 12px var(--mono); background: var(--panel-2); color: var(--ink); }
+.ed-area { flex: 1; border: 0; outline: none; resize: none; padding: 14px 16px; font: 13px/1.6 var(--mono); background: var(--term-solid); color: var(--term-ink); }
+.ed-status { display: flex; gap: 16px; padding: 4px 12px; border-top: 1px solid var(--line); background: var(--panel); font: 11px var(--mono); color: var(--ink-dim); }
+
+/* ============================ SETTINGS ============================ */
+.settings { padding: 20px 24px; background: var(--panel-2); color: var(--ink); height: 100%; overflow: auto; }
+.settings h1 { font-size: 22px; margin: 0 0 6px; }
+.settings h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); margin: 18px 0 4px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.wp-swatches { display: flex; gap: 8px; }
+.wp-sw { width: 44px; height: 30px; border-radius: 7px; border: 2px solid transparent; cursor: pointer; }
+.wp-sw.on { border-color: var(--accent); }
+.wp-sw.lime { background: linear-gradient(135deg, #a8e063, #245c1f); }
+.wp-sw.platinum { background: linear-gradient(180deg, #b9bfc7, #969da6); }
+.wp-sw.dusk { background: linear-gradient(135deg, #3a1c71, #ffaf7b); }
+.wp-sw.noir { background: linear-gradient(135deg, #2b2e33, #0b0e14); }
+.switch { position: relative; width: 42px; height: 24px; display: inline-block; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch i {
+  position: absolute; inset: 0; border-radius: 13px; background: var(--line);
+  transition: background 0.15s; cursor: pointer;
+}
+.switch i::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: left 0.15s;
+}
+.switch input:checked + i { background: var(--accent); }
+.switch input:checked + i::after { left: 20px; }
+
+/* ============================ MONITOR ============================ */
+.monitor { display: flex; flex-direction: column; height: 100%; background: var(--term-solid); color: var(--term-ink); font-family: var(--mono); }
+.mon-head { padding: 10px 14px 6px; font-size: 12px; color: var(--lime); border-bottom: 1px solid #223; }
+.mon-rows { flex: 1; overflow: auto; padding: 6px 8px; }
+.mon-row { display: grid; grid-template-columns: 48px 1fr 90px 52px 56px 30px; gap: 8px; align-items: center; font-size: 12px; padding: 4px 6px; border-radius: 6px; }
+.mon-row:hover { background: rgba(126, 211, 33, 0.08); }
+.mon-row.hdr { color: #7d8899; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.mon-cpu { height: 7px; border-radius: 4px; background: #1c2530; overflow: hidden; }
+.mon-cpu i { display: block; height: 100%; background: linear-gradient(90deg, var(--lime-deep), var(--lime)); }
+.mon-kill { background: none; border: 0; color: #ff7b72; cursor: pointer; font-size: 13px; border-radius: 5px; }
+.mon-kill:hover { background: rgba(255, 123, 114, 0.18); }
+.mon-kill:disabled { color: #444; cursor: not-allowed; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 640px) {
+  .files-grid { grid-template-columns: 1fr; }
+  .neofetch { flex-direction: column; }
+  .win { min-width: 280px; }
+  .win-root .term { padding-right: 14px; }
+  .desktop-icons { display: none; }
+}
+
+</style>
+</head>
+<body>
+  <!-- ====================== BOOT: POST → splash ======================= -->
+  <div id="boot" class="boot">
+    <pre id="boot-log" class="boot-log" aria-live="polite"></pre>
+    <div id="boot-splash" class="boot-splash" hidden>
+      <div class="splash-card">
+        <div class="splash-logo">🟩</div>
+        <h1>LIMEdit&nbsp;BLOCK</h1>
+        <p class="splash-sub">Welcome to LIMEdit BLOCK.</p>
+        <div class="boot-bar"><i id="boot-bar-fill"></i></div>
+        <div id="splash-ext" class="splash-ext" title="Loading extensions…"></div>
+      </div>
+      <div class="splash-foot">archdos-hybrid 1.0 · LIMAWEK · BlockWM</div>
+    </div>
+  </div>
+
+  <!-- ============================ DESKTOP ============================== -->
+  <div id="desktop" class="desktop" hidden>
+
+    <!-- System 9-style Platinum menu bar -->
+    <header id="menubar" class="menubar">
+      <button class="mb-item mb-logo" data-menu="apple" title="LIMEdit BLOCK">🟩</button>
+      <button class="mb-item mb-app" data-menu="file">File</button>
+      <button class="mb-item" data-menu="edit">Edit</button>
+      <button class="mb-item" data-menu="view">View</button>
+      <button class="mb-item" data-menu="special">Special</button>
+      <div class="mb-spacer"></div>
+      <span id="mb-kernel" class="mb-status mb-kernel" title="Hybrid kernel — active personality (LIMAWEK)">◆ arch</span>
+      <span id="mb-wm" class="mb-status" title="Window manager (always on)">▚ BlockWM</span>
+      <span id="mb-fallback" class="mb-status mb-fallback" title="Fallback-GUI state">GUI: shell</span>
+      <span class="mb-status" title="Battery">🔋 98%</span>
+      <span id="mb-clock" class="mb-status mb-clock">--:--</span>
+      <button class="mb-item mb-appmenu" data-menu="apps" title="Launch an application">▦</button>
+      <button class="mb-item mb-appwin" id="mb-appwin" data-menu="windows" title="Open windows">▤ console</button>
+    </header>
+
+    <!-- Dropdown menus render here -->
+    <div id="menu-drop" class="menu-drop" hidden></div>
+
+    <!-- Windows + desktop icons live here -->
+    <main id="windows" class="windows">
+      <div id="desktop-icons" class="desktop-icons"></div>
+    </main>
+
+    <!-- Launcher dock -->
+    <footer id="dock" class="dock"></footer>
+  </div>
+
+  <script>
+/*
+ * LIMEdit BLOCK — kernel.js
+ * The hybrid kernel and its supervisor, LIMAWEK.
+ *
+ * LIMEdit BLOCK does not run one kernel — it runs two *personalities* welded
+ * behind a single hybrid kernel, and arbitrates between them at runtime:
+ *
+ *   • DOS real-mode        — the 16-bit COMMAND.COM world, modelled on the
+ *                            officially open-sourced microsoft/MS-DOS.
+ *   • Linux (Arch)         — a 64-bit protected-mode kernel that services
+ *                            modern userland *and every third-party Linux
+ *                            application*, modelled on Arch Linux (newest).
+ *
+ * LIMAWEK — the LIMe Adaptive Workload Arbitration & Execution Kernel-manager —
+ * watches each workload, decides which personality's ABI it needs, and hot-
+ * switches the kernel there, logging every transition. A DOS verb pulls the
+ * kernel into real-mode; a Linux app pulls it into the Arch kernel. That is the
+ * "changes where it needs to (application » Linux kernel if needed)" behaviour.
+ *
+ * Everything is in-memory; no real disk or CPU mode is touched.
+ */
+'use strict';
+
+const Kernel = (() => {
+  const BOOT_TIME = Date.now();
+
+  // The two kernel personalities the hybrid kernel can present.
+  const personalities = {
+    linux: {
+      id: 'linux',
+      name: 'Linux (Arch)',
+      version: '6.14.2-arch1',          // newest Arch rolling kernel
+      cpu: 'protected-mode · 64-bit',
+      prompt: 'arch',
+      src: 'archlinux.org (rolling)',
+      note: 'services modern userland + third-party Linux applications',
+    },
+    dos: {
+      id: 'dos',
+      name: 'MS-DOS real-mode',
+      version: '6.22-compat',           // the familiar retail look…
+      cpu: 'real-mode · 16-bit',
+      prompt: 'dos',
+      src: 'microsoft/MS-DOS (v1.25 / 2.0 / 4.0, MIT)',
+      note: 'COMMAND.COM verbs, 8.3 names, drive letters',
+    },
+  };
+
+  const system = {
+    name: 'LIMEdit BLOCK',
+    codename: 'Second Squeeze',
+    version: '1.1.0',
+    kernel: 'archdos-hybrid 1.0',
+    arch: 'x86_64',
+    shell: 'limesh 1.0',
+    de: 'Block9 (System 9.2.2-style)',
+    wm: 'BlockWM (always-on)',
+    host: 'limebox',
+    user: 'lime',
+    cpu: 'Citrus C9 @ 3.60GHz (8 cores)',
+    gpu: 'BlockGL Pulse',
+    memTotalMb: 16384,
+    packages: 0,
+  };
+
+  // ------------------------------------------------------------ LIMAWEK
+  // Like the hardware it honours, the hybrid boots in DOS real-mode; the
+  // first Linux-ABI workload makes LIMAWEK bring the Arch kernel up.
+  let currentMode = 'dos';
+  let locked = false;            // `dos` immersive mode locks the arbiter
+  const klog = [];               // kernel transition log
+  const listeners = [];
+
+  const LIMAWEK = {
+    fullName: 'LIMe Adaptive Workload Arbitration & Execution Kernel-manager',
+    personalities,
+    mode: () => currentMode,
+    personality: () => personalities[currentMode],
+    isLocked: () => locked,
+    log: () => klog.slice(),
+    onChange(fn) { listeners.push(fn); },
+    emit(from, to, workload, line) { listeners.forEach((fn) => { try { fn(to, from, workload, line); } catch (_) {} }); },
+
+    /* Arbitrate: ensure the kernel is presenting `abi` for this workload.
+       Returns a human-readable transition line iff a switch happened. */
+    require(abi, workload) {
+      if (abi !== 'dos' && abi !== 'linux') return null;
+      if (locked || currentMode === abi) return null;
+      const from = currentMode;
+      currentMode = abi;
+      const p = personalities[abi];
+      const line = `limawek: '${workload}' needs ${abi.toUpperCase()} ABI  →  kernel switched to ${p.name} (${p.cpu})`;
+      klog.push({ t: Date.now(), from, to: abi, workload, line });
+      this.emit(from, abi, workload, line);
+      return line;
+    },
+    lock(abi, workload) {
+      const line = this.require(abi, workload || 'lock');
+      locked = true;
+      return line;
+    },
+    unlock(workload) { locked = false; return this.require('linux', workload || 'unlock'); },
+    status() {
+      const p = this.personality();
+      return [
+        'LIMAWEK — ' + this.fullName,
+        'state         : ' + (locked ? 'LOCKED (immersive)' : 'arbitrating'),
+        'active kernel : ' + p.name + '  ' + p.version,
+        'cpu mode      : ' + p.cpu,
+        'transitions   : ' + klog.length,
+        'personalities : dos (MS-DOS real-mode) · linux (Arch ' + personalities.linux.version + ')',
+      ].join('\n');
+    },
+  };
+
+  // -------------------------------------------------------------- VFS
+  function dir(children = {}) { return { type: 'dir', children, mtime: Date.now() }; }
+  function file(content = '') { return { type: 'file', content, mtime: Date.now() }; }
+
+  const root = dir({
+    bin: dir(),
+    boot: dir({ 'vmlinuz-linux': file('\0BLOCK linux 6.14.2-arch1\0'), 'msdos.sys': file('MSDOS real-mode personality\r\n') }),
+    etc: dir({
+      'os-release': file(
+        'NAME="LIMEdit BLOCK"\nID=limeblock\nID_LIKE="arch dos"\n' +
+        'VERSION="1.1.0 (Second Squeeze)"\nPRETTY_NAME="LIMEdit BLOCK 1.1.0"\n' +
+        'KERNEL="archdos-hybrid"\nHOME_URL="lime://welcome"\n'),
+      'motd': file('LIMEdit BLOCK — the GUI is the terminal.\n' +
+                   'A hybrid kernel: LIMAWEK arbitrates DOS real-mode ⇄ Linux (Arch).\n' +
+                   'Type `help` or `kernel` — `open browser` reaches the real internet.\n'),
+    }),
+    usr: dir({ bin: dir(), lib: dir({ modules: dir() }), share: dir({ doc: dir() }) }),
+    var: dir({ log: dir({ 'kern.log': file('archdos: hybrid kernel online\n') }) }),
+    home: dir({
+      lime: dir({
+        'readme.txt': file(
+          'LIMEdit BLOCK\n=============\n\n' +
+          'The whole desktop is a terminal. The console you are reading this from\n' +
+          'is the root window — the window manager keeps it alive at all times.\n\n' +
+          'Try:\n' +
+          '  neofetch            arch-style animated banner\n' +
+          '  DIR                 a DOS verb → watch LIMAWEK flip to real-mode\n' +
+          '  ls                  a Linux verb → LIMAWEK flips back to Arch\n' +
+          '  kernel              inspect the hybrid kernel\n' +
+          '  limawek log         see every kernel transition\n' +
+          '  pacman -S firefox && run firefox   third-party app on the Linux kernel\n' +
+          '  dos                 drop into an immersive MS-DOS session\n'),
+        Documents: dir({ 'hello.md': file('# Hello from BLOCK\n\nEverything here is in-memory.\n') }),
+        Downloads: dir(),
+        '.limerc': file('# limesh startup\nalias ll="ls -l"\n'),
+      }),
+    }),
+  });
+
+  function normalize(cwd, p) {
+    if (!p) return cwd;
+    p = String(p).replace(/\\/g, '/');
+    let parts;
+    if (p.startsWith('/')) parts = p.split('/');
+    else if (p === '~' || p.startsWith('~/')) parts = ('/home/lime/' + p.slice(2)).split('/');
+    else parts = (cwd + '/' + p).split('/');
+    const out = [];
+    for (const seg of parts) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') out.pop(); else out.push(seg);
+    }
+    return '/' + out.join('/');
+  }
+  function lookup(abs) {
+    if (abs === '/') return root;
+    let node = root;
+    for (const seg of abs.split('/').filter(Boolean)) {
+      if (node.type !== 'dir' || !node.children[seg]) return null;
+      node = node.children[seg];
+    }
+    return node;
+  }
+  function parentOf(abs) {
+    const i = abs.lastIndexOf('/');
+    const parent = i <= 0 ? '/' : abs.slice(0, i);
+    return { parent: lookup(parent), name: abs.slice(i + 1) };
+  }
+  const fs = {
+    normalize, lookup,
+    isDir: (a) => { const n = lookup(a); return !!n && n.type === 'dir'; },
+    isFile: (a) => { const n = lookup(a); return !!n && n.type === 'file'; },
+    read(a) { const n = lookup(a); if (!n || n.type !== 'file') throw new Error('not a file: ' + a); return n.content; },
+    list(a) { const n = lookup(a); if (!n || n.type !== 'dir') throw new Error('not a directory: ' + a); return n.children; },
+    write(a, c) { const { parent, name } = parentOf(a); if (!parent || parent.type !== 'dir') throw new Error('no such directory'); if (parent.children[name] && parent.children[name].type === 'dir') throw new Error('is a directory'); parent.children[name] = file(c); },
+    mkdir(a) { const { parent, name } = parentOf(a); if (!parent || parent.type !== 'dir') throw new Error('no such directory'); if (parent.children[name]) throw new Error('already exists'); parent.children[name] = dir(); },
+    remove(a) { const { parent, name } = parentOf(a); if (!parent || !parent.children[name]) throw new Error('no such file or directory: ' + a); delete parent.children[name]; },
+    touch(a) { const n = lookup(a); if (n) { n.mtime = Date.now(); return; } fs.write(a, ''); },
+  };
+
+  // ---------------------------------------------------------- processes
+  let nextPid = 100;
+  const processes = [
+    { pid: 1, name: 'archdos-kernel', cpu: 0.0, mem: 42, abi: 'hybrid' },
+    { pid: 2, name: 'limawek', cpu: 0.3, mem: 18, abi: 'hybrid' },
+    { pid: 8, name: 'blockwm', cpu: 1.2, mem: 88, abi: 'linux' },
+    { pid: 9, name: 'limesh', cpu: 0.4, mem: 24, abi: 'hybrid' },
+  ];
+  function spawn(name, mem = 30, abi = 'linux') { const p = { pid: nextPid++, name, cpu: +(Math.random() * 3).toFixed(1), mem, abi }; processes.push(p); return p; }
+  function kill(pid) { const i = processes.findIndex((p) => p.pid === pid); if (i === -1) return false; processes.splice(i, 1); return true; }
+
+  function uptime() {
+    const s = Math.floor((Date.now() - BOOT_TIME) / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h ? h + 'h ' : '') + (m ? m + 'm ' : '') + sec + 's';
+  }
+  function memUsedMb() { return processes.reduce((a, p) => a + p.mem, 0) + 1800; }
+
+  return { system, personalities, LIMAWEK, fs, processes, spawn, kill, uptime, memUsedMb, BOOT_TIME };
+})();
+window.Kernel = Kernel;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — neofetch.js
+ * An Arch-caliber `neofetch`. The logo is the classic distro-mountain rendered
+ * the way real neofetch draws Arch/Gentoo — in punctuation glyphs, not solid
+ * blocks — and coloured in a two-tone lime scheme with a soft highlight band
+ * that sweeps down the peak (animated, but readable — no rainbow egg).
+ *
+ * The info column mirrors real neofetch and surfaces the *hybrid kernel*: the
+ * active personality and LIMAWEK's state, so `neofetch` doubles as `kernel`.
+ */
+'use strict';
+
+const Neofetch = (() => {
+  // The iconic Arch-style mountain (as shipped by neofetch), lime-tinted.
+  const ART = [
+    '                   -`                   ',
+    '                  .o+`                  ',
+    '                 `ooo/                  ',
+    '                `+oooo:                 ',
+    '               `+oooooo:                ',
+    '               -+oooooo+:               ',
+    '             `/:-:++oooo+:              ',
+    '            `/++++/+++++++:             ',
+    '           `/++++++++++++++:            ',
+    '          `/+++ooooooooooooo/`          ',
+    '         ./ooosssso++osssssso+`         ',
+    '        .oossssso-````/ossssss+`        ',
+    '       -osssssso.      :ssssssso.       ',
+    '      :osssssss/        osssso+++.      ',
+    '     /ossssssss/        +ssssooo/-      ',
+    '   `/ossssso+/:-        -:/+osssso+-    ',
+    '  `+sso+:-`                 `.-/+oso:   ',
+    ' `++:.                           `-/+/  ',
+    ' .`                                 `/  ',
+  ];
+
+  function infoLines() {
+    const k = Kernel, s = k.system, p = k.LIMAWEK.personality();
+    s.packages = (window.Pacman && Pacman.count()) || s.packages;
+    const usedGb = (k.memUsedMb() / 1024).toFixed(1), totGb = (s.memTotalMb / 1024).toFixed(1);
+    return [
+      [s.user + '@' + s.host, 'title'],
+      ['-----------------', 'rule'],
+      ['OS', s.name + ' ' + s.version + ' (' + s.codename + ') x86_64'],
+      ['Host', 'BlockBook Pro'],
+      ['Kernel', 'archdos-hybrid → ' + p.name + ' ' + p.version],
+      ['Arbiter', 'LIMAWEK · ' + (k.LIMAWEK.isLocked() ? 'locked' : 'arbitrating') + ' · ' + k.LIMAWEK.log().length + ' switches'],
+      ['Uptime', k.uptime()],
+      ['Packages', s.packages + ' (pacman)'],
+      ['Shell', s.shell],
+      ['DE / WM', s.de + ' · ' + s.wm],
+      ['Terminal', 'limeterm (root console)'],
+      ['CPU', s.cpu],
+      ['GPU', s.gpu],
+      ['Memory', usedGb + 'GiB / ' + totGb + 'GiB'],
+      ['', ''],
+      ['colors', 'swatch'],
+    ];
+  }
+
+  function render() {
+    const wrap = document.createElement('div');
+    wrap.className = 'neofetch';
+    const artEl = document.createElement('pre'); artEl.className = 'nf-art'; wrap.appendChild(artEl);
+    const infoEl = document.createElement('div'); infoEl.className = 'nf-info'; wrap.appendChild(infoEl);
+
+    for (const [label, val] of infoLines()) {
+      const row = document.createElement('div'); row.className = 'nf-row';
+      if (val === 'title') { row.className = 'nf-title'; row.textContent = label; }
+      else if (val === 'rule') { row.className = 'nf-rule'; row.textContent = label; }
+      else if (val === 'swatch') {
+        row.className = 'nf-swatch';
+        for (let i = 0; i < 8; i++) { const b = document.createElement('span'); b.style.background = `hsl(${96 + i * 6},65%,${34 + i * 5}%)`; row.appendChild(b); }
+        infoEl.appendChild(row); continue;
+      } else if (label === '') { row.innerHTML = '&nbsp;'; }
+      else { row.innerHTML = `<b>${label}</b><span class="nf-dot">:</span> ${val}`; }
+      infoEl.appendChild(row);
+    }
+
+    // Per-glyph spans so the highlight band can sweep the peak.
+    const rows = ART.map((line) => {
+      const rowEl = document.createElement('span'); rowEl.className = 'nf-artrow';
+      const spans = [];
+      for (const ch of line) { const sp = document.createElement('span'); sp.textContent = ch; if (ch.trim()) spans.push({ sp, r: 0 }); rowEl.appendChild(sp); }
+      artEl.appendChild(rowEl); artEl.appendChild(document.createTextNode('\n'));
+      return spans;
+    });
+
+    let raf = 0, t = 0, running = true;
+    function frame() {
+      if (!running) return;
+      t += 0.03;
+      const sweep = (t % 2) / 2 * rows.length;   // highlight band position (row)
+      for (let r = 0; r < rows.length; r++) {
+        const dist = Math.abs(r - sweep);
+        const lift = Math.max(0, 1 - dist / 3);   // brighten near the band
+        // two-tone lime: base rows darker, peak (upper) lighter
+        const baseL = 34 + (rows.length - r) * 1.4;
+        const L = Math.min(72, baseL + lift * 26);
+        const col = `hsl(${96 - r},70%,${L}%)`;
+        for (const { sp } of rows[r]) sp.style.color = col;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+    return { el: wrap, stop() { running = false; if (raf) cancelAnimationFrame(raf); } };
+  }
+
+  return { render, ART };
+})();
+window.Neofetch = Neofetch;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — commands.js
+ * The command library for limesh. Four dialects live side by side:
+ *
+ *   • Modern GNU/Arch userland  — ls, cat, grep, uname, ...
+ *   • MS-DOS (COMMAND.COM)      — DIR, CLS, TYPE, VER, MEM, ...   (case-insensitive)
+ *   • Windows PowerShell        — Get-ChildItem, Set-Location, ... (+ Verb-Noun fallback)
+ *   • Funny / demo              — neofetch, cowsay, ascii, matrix, sl, ...
+ *
+ * Every command is { help, usage?, run(ctx,args,raw) }. `ctx` carries the
+ * terminal writers, the shell state, the VFS, and GUI hooks.
+ */
+'use strict';
+
+/* ------------------------------------------------------------------ pacman
+ * A miniature of Arch Linux's pacman: a package database you can query,
+ * install into, and remove from. Purely in-memory.                         */
+const Pacman = (() => {
+  const repo = {                                   // newest Arch versions
+    firefox: '135.0', 'block-browser': '1.0', neovim: '0.10.4', git: '2.48.1',
+    htop: '3.4.0', 'base-devel': '1.0', python: '3.13.2', nodejs: '23.9.0',
+    cowsay: '3.7.0', fortune: '3.20', sl: '5.05', neofetch: '7.1.0',
+    'block-doom': '1.9', cmatrix: '2.0', hyprland: '0.47', gimp: '2.10.38',
+  };
+  // Packages that ship a graphical binary → run on the Linux (Arch) kernel.
+  const guiApps = new Set(['firefox', 'block-browser', 'gimp', 'neovim', 'block-doom', 'hyprland', 'htop']);
+  const installed = new Map([
+    ['base', '1.0'], ['linux', '6.14.2-arch1'], ['limesh', '1.0'],
+    ['pacman', '7.0.0'], ['block9', '9.2.2'], ['neofetch', '7.1.0'],
+    ['coreutils', '9.6'], ['dosemu-verbs', '2.0'], ['limawek', '1.0'],
+  ]);
+  return {
+    count: () => installed.size,
+    isInstalled: (n) => installed.has(n),
+    list: () => [...installed.entries()],
+    inRepo: (n) => n in repo,
+    repoVersion: (n) => repo[n],
+    isGui: (n) => guiApps.has(n),
+    install(n) { if (!(n in repo)) return null; installed.set(n, repo[n]); return repo[n]; },
+    remove(n) { return installed.delete(n); },
+    search(q) { return Object.keys(repo).filter((k) => k.includes(q)); },
+  };
+})();
+window.Pacman = Pacman;
+
+const Commands = (() => {
+  // ---- tiny helpers ----------------------------------------------------
+  const pad = (s, n) => (s + ' '.repeat(n)).slice(0, n);
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  function resolve(ctx, p) { return Kernel.fs.normalize(ctx.shell.cwd, p); }
+  function baseName(abs) { return abs.split('/').filter(Boolean).pop() || '/'; }
+
+  // A compact 5-row block font for `ascii`/`figlet`. '#' -> block.
+  const FONT = {
+    A: ['.##.', '#..#', '####', '#..#', '#..#'], B: ['###.', '#..#', '###.', '#..#', '###.'],
+    C: ['.###', '#...', '#...', '#...', '.###'], D: ['###.', '#..#', '#..#', '#..#', '###.'],
+    E: ['####', '#...', '###.', '#...', '####'], F: ['####', '#...', '###.', '#...', '#...'],
+    G: ['.###', '#...', '#.##', '#..#', '.###'], H: ['#..#', '#..#', '####', '#..#', '#..#'],
+    I: ['###', '.#.', '.#.', '.#.', '###'], J: ['..##', '...#', '...#', '#..#', '.##.'],
+    K: ['#..#', '#.#.', '##..', '#.#.', '#..#'], L: ['#...', '#...', '#...', '#...', '####'],
+    M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], N: ['#..#', '##.#', '#.##', '#..#', '#..#'],
+    O: ['.##.', '#..#', '#..#', '#..#', '.##.'], P: ['###.', '#..#', '###.', '#...', '#...'],
+    Q: ['.##.', '#..#', '#..#', '#.##', '.###'], R: ['###.', '#..#', '###.', '#.#.', '#..#'],
+    S: ['.###', '#...', '.##.', '...#', '###.'], T: ['#####', '..#..', '..#..', '..#..', '..#..'],
+    U: ['#..#', '#..#', '#..#', '#..#', '.##.'], V: ['#..#', '#..#', '#..#', '.##.', '.##.'],
+    W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'], X: ['#..#', '.##.', '.##.', '.##.', '#..#'],
+    Y: ['#..#', '.##.', '..#.', '..#.', '..#.'], Z: ['####', '..#.', '.#..', '#...', '####'],
+    0: ['.##.', '#.##', '##.#', '#..#', '.##.'], 1: ['.#.', '##.', '.#.', '.#.', '###'],
+    2: ['###.', '...#', '.##.', '#...', '####'], 3: ['###.', '...#', '.##.', '...#', '###.'],
+    4: ['#..#', '#..#', '####', '...#', '...#'], 5: ['####', '#...', '###.', '...#', '###.'],
+    6: ['.###', '#...', '###.', '#..#', '.##.'], 7: ['####', '...#', '..#.', '.#..', '.#..'],
+    8: ['.##.', '#..#', '.##.', '#..#', '.##.'], 9: ['.##.', '#..#', '.###', '...#', '###.'],
+    ' ': ['..', '..', '..', '..', '..'], '!': ['#', '#', '#', '.', '#'],
+    '?': ['###.', '...#', '.##.', '....', '.#..'], '.': ['.', '.', '.', '.', '#'],
+    '-': ['....', '....', '####', '....', '....'],
+  };
+  function figlet(text) {
+    const rows = ['', '', '', '', ''];
+    for (const ch of text.toUpperCase()) {
+      const g = FONT[ch] || FONT['?'];
+      for (let r = 0; r < 5; r++) rows[r] += g[r].replace(/#/g, '█').replace(/\./g, ' ') + '  ';
+    }
+    return rows.join('\n');
+  }
+
+  function cowsay(text) {
+    const line = text || 'Moo from BLOCK';
+    const top = ' ' + '_'.repeat(line.length + 2);
+    const bot = ' ' + '-'.repeat(line.length + 2);
+    return [top, '< ' + line + ' >', bot,
+      '        \\   ^__^',
+      '         \\  (oo)\\_______',
+      '            (__)\\       )\\/\\',
+      '                ||----w |',
+      '                ||     ||'].join('\n');
+  }
+
+  const FORTUNES = [
+    'A block in the hand is worth two in the swap file.',
+    'DOS is dead; long live DIR.',
+    'To err is human; to really foul things up you need a rolling release.',
+    'The lime does not fall far from the compiler.',
+    'sudo make me a sandwich.  — okay.',
+    'There are 10 kinds of people: those who read hex and F00D.',
+  ];
+
+  // ---- long-form help sections ----------------------------------------
+  const CATS = {
+    'Hybrid kernel & LIMAWEK': ['kernel', 'limawek', 'dos', 'run'],
+    'File & system (modern)': ['ls', 'cd', 'pwd', 'cat', 'head', 'tail', 'wc', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'tree', 'grep', 'find', 'which', 'echo', 'clear', 'uname', 'hostname', 'whoami', 'date', 'uptime', 'ps', 'kill', 'htop', 'free', 'df', 'ping', 'history', 'man', 'env', 'alias', 'edit'],
+    'MS-DOS verbs (→ real-mode)': ['dir', 'cls', 'type', 'copy', 'del', 'ren', 'ver', 'mem', 'md', 'rd', 'chdir', 'time', 'prompt', 'path'],
+    'PowerShell': ['get-childitem', 'get-content', 'set-location', 'get-location', 'write-host', 'get-process', 'get-date', 'get-command', 'get-help', 'clear-host', 'new-item', 'remove-item', '$psversiontable'],
+    'Package manager (pacman)': ['pacman', 'apt'],
+    'Internet': ['browser', 'curl', 'wget', 'ping'],
+    'GUI & apps': ['apps', 'open', 'gui', 'fallback-gui', 'theme', 'wallpaper'],
+    'Fun': ['neofetch', 'cowsay', 'fortune', 'ascii', 'figlet', 'matrix', 'sl', 'lolcat', 'coffee', 'sudo'],
+    'Power user': ['code', 'js', 'reboot', 'shutdown', 'exit'],
+  };
+
+  // ---- which kernel personality each command's ABI needs --------------
+  // DOS verbs pull the hybrid kernel into real-mode; Linux userland pulls it
+  // to the Arch personality. HYBRID commands are surface tools (help, fun,
+  // kernel introspection, GUI control) serviced by the hybrid layer itself —
+  // they never flip the kernel, so the DOS look survives a `help` or a
+  // `neofetch`. LIMAWEK reads this to arbitrate.
+  const DOS_ABI = new Set(['dir', 'cls', 'type', 'copy', 'del', 'erase', 'ren', 'rename',
+    'ver', 'mem', 'md', 'rd', 'rmdir', 'chdir', 'time', 'prompt', 'path', 'format']);
+  const HYBRID_ABI = new Set(['help', 'man', 'get-help', 'get-command', 'commands',
+    'neofetch', 'cowsay', 'fortune', 'ascii', 'figlet', 'banner', 'lolcat', 'matrix',
+    'sl', 'coffee', 'sudo', 'kernel', 'lsmod', 'limawek', 'lima', 'dos', 'command.com',
+    'code', 'js', 'eval', 'open', 'start', 'gui', 'browser', 'block-browser', 'firefox',
+    'apps', 'launchpad', 'fallback-gui', 'fallbackgui', 'theme', 'wallpaper', 'edit',
+    'htop', 'top', 'history', 'alias', 'exit', 'logout', 'quit', 'reboot', 'shutdown',
+    'restart-computer', 'stop-computer', 'poweroff']);
+  const abiOf = (name) => (DOS_ABI.has(name) ? 'dos' : HYBRID_ABI.has(name) ? null : 'linux');
+
+  // ====================================================================
+  //  Command table
+  // ====================================================================
+  const cmds = {};
+  const def = (names, help, run, extra = {}) => {
+    const spec = { help, run, ...extra };
+    for (const n of [].concat(names)) cmds[n] = spec;
+  };
+
+  // ---------------- help / discovery -----------------------------------
+  def('help', 'List commands, or `help <cmd>` for detail.', (ctx, a) => {
+    if (a[0]) {
+      const c = cmds[a[0].toLowerCase()];
+      if (!c) return ctx.print('help: no such command: ' + a[0], 'err');
+      ctx.print(a[0] + ' — ' + c.help + (c.usage ? '\n  usage: ' + c.usage : ''));
+      return;
+    }
+    ctx.print('LIMEdit BLOCK — limesh command reference', 'accent');
+    for (const [cat, list] of Object.entries(CATS)) {
+      ctx.print('\n' + cat, 'accent');
+      ctx.print('  ' + list.join('  '));
+    }
+    ctx.print('\nTips: commands are case-insensitive. limesh supports pipes, redirection,', 'dim');
+    ctx.print('and chaining:   help | grep pacman     ls > listing.txt     mkdir x && cd x', 'dim');
+  });
+  def(['get-help', 'man'], 'Show help for a command (PowerShell/Unix style).',
+    (ctx, a) => cmds.help.run(ctx, a));
+  def(['get-command', 'commands'], 'List every available command.',
+    (ctx) => ctx.print(Object.keys(cmds).sort().join('  ')));
+
+  // ---------------- navigation / files ---------------------------------
+  function doList(ctx, a) {
+    const long = a.includes('-l') || a.includes('-la') || a.includes('-al');
+    const target = a.find((x) => !x.startsWith('-')) || '.';
+    const abs = resolve(ctx, target);
+    const node = Kernel.fs.lookup(abs);
+    if (!node) return ctx.print('ls: cannot access ' + target + ': No such file or directory', 'err');
+    if (node.type === 'file') return ctx.print(baseName(abs));
+    const entries = Object.entries(node.children);
+    if (!entries.length) return;
+    if (long) {
+      for (const [name, n] of entries) {
+        const kind = n.type === 'dir' ? 'd' : '-';
+        const size = n.type === 'file' ? String(n.content.length) : '4096';
+        const when = new Date(n.mtime).toLocaleString();
+        ctx.print(`${kind}rwxr-xr-x  lime  ${pad(size, 7)} ${when}  ` +
+          (n.type === 'dir' ? name + '/' : name), n.type === 'dir' ? 'dir' : '');
+      }
+    } else {
+      const html = entries.map(([name, n]) =>
+        `<span class="${n.type === 'dir' ? 'dir' : 'fileo'}">${esc(name)}${n.type === 'dir' ? '/' : ''}</span>`).join('   ');
+      ctx.printHTML(html);
+    }
+  }
+  def(['ls', 'dir', 'get-childitem', 'gci'], 'List directory contents.', doList, { usage: 'ls [-l] [path]' });
+
+  def(['cd', 'chdir', 'set-location'], 'Change the working directory.', (ctx, a) => {
+    // (real `sl` is the steam-locomotive gag, defined below — PowerShell's
+    //  sl alias loses that fight.)
+    const t = a[0] || '~';
+    const abs = resolve(ctx, t);
+    if (!Kernel.fs.isDir(abs)) return ctx.print('cd: not a directory: ' + t, 'err');
+    ctx.shell.cwd = abs;
+  }, { usage: 'cd <dir>' });
+
+  def(['pwd', 'get-location', 'gl'], 'Print the working directory.', (ctx) => ctx.print(ctx.shell.cwd));
+
+  def(['cat', 'type', 'get-content', 'gc'], 'Print file contents.', (ctx, a) => {
+    if (!a[0]) return ctx.print('usage: cat <file>', 'err');
+    const abs = resolve(ctx, a[0]);
+    if (!Kernel.fs.isFile(abs)) return ctx.print('cat: ' + a[0] + ': No such file', 'err');
+    ctx.print(Kernel.fs.read(abs).replace(/\n$/, ''));
+  });
+
+  def(['mkdir', 'md'], 'Create a directory.', (ctx, a) => {
+    if (!a[0]) return ctx.print('usage: mkdir <dir>', 'err');
+    try { Kernel.fs.mkdir(resolve(ctx, a[0])); } catch (e) { ctx.print('mkdir: ' + e.message, 'err'); }
+  });
+  def(['touch'], 'Create an empty file / update mtime.', (ctx, a) => {
+    if (!a[0]) return ctx.print('usage: touch <file>', 'err');
+    Kernel.fs.touch(resolve(ctx, a[0]));
+  });
+  def(['new-item', 'ni'], 'Create a file or directory (PowerShell).', (ctx, a) => {
+    const isDir = a.join(' ').toLowerCase().includes('directory');
+    const name = a.find((x) => !x.startsWith('-') && x.toLowerCase() !== 'directory' && x.toLowerCase() !== 'file');
+    if (!name) return ctx.print('usage: New-Item <name> [-ItemType Directory]', 'err');
+    try { isDir ? Kernel.fs.mkdir(resolve(ctx, name)) : Kernel.fs.touch(resolve(ctx, name)); }
+    catch (e) { ctx.print('New-Item: ' + e.message, 'err'); }
+  });
+
+  def(['rm', 'del', 'erase', 'remove-item', 'ri'], 'Remove a file or directory.', (ctx, a) => {
+    const t = a.find((x) => !x.startsWith('-'));
+    if (!t) return ctx.print('usage: rm [-r] <path>', 'err');
+    try { Kernel.fs.remove(resolve(ctx, t)); } catch (e) { ctx.print('rm: ' + e.message, 'err'); }
+  });
+  def(['rd', 'rmdir'], 'Remove a directory (DOS).', (ctx, a) => cmds.rm.run(ctx, a));
+
+  def(['cp', 'copy', 'copy-item'], 'Copy a file.', (ctx, a) => {
+    const [s, d] = a.filter((x) => !x.startsWith('-'));
+    if (!s || !d) return ctx.print('usage: cp <src> <dst>', 'err');
+    const src = resolve(ctx, s);
+    if (!Kernel.fs.isFile(src)) return ctx.print('cp: ' + s + ': not a file', 'err');
+    let dst = resolve(ctx, d);
+    if (Kernel.fs.isDir(dst)) dst = dst + '/' + baseName(src);
+    Kernel.fs.write(dst, Kernel.fs.read(src));
+  });
+  def(['mv', 'ren', 'rename', 'move', 'move-item'], 'Move / rename a file.', (ctx, a) => {
+    const [s, d] = a.filter((x) => !x.startsWith('-'));
+    if (!s || !d) return ctx.print('usage: mv <src> <dst>', 'err');
+    const src = resolve(ctx, s);
+    if (!Kernel.fs.isFile(src)) return ctx.print('mv: ' + s + ': not a file', 'err');
+    Kernel.fs.write(resolve(ctx, d), Kernel.fs.read(src));
+    Kernel.fs.remove(src);
+  });
+
+  def('tree', 'Draw the directory tree.', (ctx, a) => {
+    const start = resolve(ctx, a[0] || '.');
+    if (!Kernel.fs.isDir(start)) return ctx.print('tree: not a directory', 'err');
+    const out = [start === '/' ? '/' : baseName(start)];
+    (function walk(abs, prefix) {
+      const kids = Object.entries(Kernel.fs.list(abs));
+      kids.forEach(([name, n], i) => {
+        const last = i === kids.length - 1;
+        out.push(prefix + (last ? '└── ' : '├── ') + name + (n.type === 'dir' ? '/' : ''));
+        if (n.type === 'dir') walk(abs + '/' + name, prefix + (last ? '    ' : '│   '));
+      });
+    })(start, '');
+    ctx.print(out.join('\n'));
+  });
+
+  def(['grep', 'select-string'], 'Search file contents for a pattern (also a pipe filter).', (ctx, a) => {
+    if (a.length < 2) return ctx.print('usage: grep <pattern> <file>    (or:  <cmd> | grep <pattern>)', 'err');
+    const [pat, f] = a;
+    const abs = resolve(ctx, f);
+    if (!Kernel.fs.isFile(abs)) return ctx.print('grep: ' + f + ': No such file', 'err');
+    let re, reMark;
+    try { re = new RegExp(pat, 'i'); reMark = new RegExp('(' + pat + ')', 'ig'); }
+    catch (_) { return ctx.print('grep: invalid pattern: ' + pat, 'err'); }
+    Kernel.fs.read(abs).split('\n').forEach((ln) => {
+      if (re.test(ln)) ctx.printHTML(esc(ln).replace(reMark, '<mark>$1</mark>'));
+    });
+  });
+  def('find', 'Recursively list paths under a directory.', (ctx, a) => {
+    const start = resolve(ctx, a[0] || '.');
+    (function walk(abs) {
+      ctx.print(abs);
+      if (Kernel.fs.isDir(abs)) for (const name of Object.keys(Kernel.fs.list(abs))) walk(abs + '/' + name);
+    })(start);
+  });
+
+  function readLines(ctx, f) {
+    const abs = resolve(ctx, f);
+    if (!Kernel.fs.isFile(abs)) { ctx.print(f + ': No such file', 'err'); return null; }
+    return Kernel.fs.read(abs).replace(/\n$/, '').split('\n');
+  }
+  def('head', 'Print the first lines of a file (also a pipe filter).', (ctx, a) => {
+    const n = a.includes('-n') ? Number(a[a.indexOf('-n') + 1]) || 10 : 10;
+    const f = a.filter((x) => x !== '-n' && !/^\d+$/.test(x))[0];
+    if (!f) return ctx.print('usage: head [-n N] <file>', 'err');
+    const lines = readLines(ctx, f); if (lines) lines.slice(0, n).forEach((l) => ctx.print(l));
+  });
+  def('tail', 'Print the last lines of a file (also a pipe filter).', (ctx, a) => {
+    const n = a.includes('-n') ? Number(a[a.indexOf('-n') + 1]) || 10 : 10;
+    const f = a.filter((x) => x !== '-n' && !/^\d+$/.test(x))[0];
+    if (!f) return ctx.print('usage: tail [-n N] <file>', 'err');
+    const lines = readLines(ctx, f); if (lines) lines.slice(-n).forEach((l) => ctx.print(l));
+  });
+  def('wc', 'Count lines, words, chars of a file (also a pipe filter).', (ctx, a) => {
+    const f = a.filter((x) => !x.startsWith('-'))[0];
+    if (!f) return ctx.print('usage: wc <file>', 'err');
+    const lines = readLines(ctx, f); if (!lines) return;
+    const text = lines.join('\n');
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    ctx.print(`      ${lines.length}      ${words}      ${text.length}  ${f}`);
+  });
+  def('which', 'Locate a command.', (ctx, a) => {
+    const n = (a[0] || '').toLowerCase();
+    if (!n) return ctx.print('usage: which <command>', 'err');
+    ctx.print(cmds[n] ? '/usr/bin/' + n : 'which: no ' + n + ' in (/bin:/usr/bin)', cmds[n] ? '' : 'err');
+  });
+  def('hostname', 'Print the host name.', (ctx) => ctx.print(Kernel.system.host));
+  def('ping', 'Ping a host (pretend network).', (ctx, a) => {
+    const host = a.find((x) => !x.startsWith('-')) || 'block.net';
+    ctx.print('PING ' + host + ' (10.0.0.9) 56(84) bytes of data.');
+    let total = 0;
+    for (let i = 1; i <= 4; i++) { const ms = +(8 + Math.random() * 20).toFixed(1); total += ms; ctx.print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + ms + ' ms'); }
+    ctx.print('\n--- ' + host + ' ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss, avg ' + (total / 4).toFixed(1) + ' ms');
+  });
+  def(['curl', 'wget', 'invoke-webrequest', 'iwr'], 'Fetch a real URL from the internet.', (ctx, a) => {
+    let url = a.find((x) => !x.startsWith('-'));
+    if (!url) return ctx.print('usage: curl <url>', 'err');
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    ctx.print('curl: fetching ' + url + ' …', 'dim');
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    fetch(url, { signal: ctl.signal }).then(async (res) => {
+      clearTimeout(t);
+      ctx.print('HTTP ' + res.status + ' ' + res.statusText + '   ' + (res.headers.get('content-type') || ''), 'accent');
+      const text = await res.text();
+      ctx.print(text.length > 2000 ? text.slice(0, 2000) + '\n… [' + text.length + ' bytes total, truncated]' : text);
+    }).catch((e) => {
+      clearTimeout(t);
+      ctx.print('curl: ' + (e.name === 'AbortError' ? 'timed out' : e.message), 'err');
+      ctx.print('  (many sites block cross-origin fetches — try `open browser` and load it there)', 'dim');
+    });
+  }, { usage: 'curl <url>     e.g.  curl example.com' });
+
+  def(['htop', 'top'], 'Open the process viewer (Activity Monitor).', (ctx) => {
+    ctx.gui.openApp('monitor');
+    ctx.print('htop: opened Activity Monitor (BlockWM window).', 'dim');
+  });
+  def('edit', 'Open a file in the BLOCK Editor.', (ctx, a) => {
+    if (!a[0]) return ctx.print('usage: edit <file>', 'err');
+    const abs = resolve(ctx, a[0]);
+    ctx.gui.openApp('editor', { path: abs });
+    ctx.print('editing ' + abs, 'dim');
+  });
+
+  def(['echo', 'write-host', 'write-output', 'print'], 'Print text.', (ctx, a, raw) => {
+    ctx.print(raw.replace(/^\S+\s*/, ''));
+  });
+
+  def(['clear', 'cls', 'clear-host'], 'Clear the terminal.', (ctx) => ctx.clear());
+
+  // ---------------- system info ----------------------------------------
+  def(['uname', 'get-host'], 'Print system information.', (ctx, a) => {
+    const s = Kernel.system;
+    if (a.includes('-a')) ctx.print(`${s.name} ${s.host} ${s.kernel} ${s.arch} archdos/BLOCK`);
+    else ctx.print(s.name);
+  });
+  def(['whoami'], 'Print the current user.', (ctx) => ctx.print(Kernel.system.user));
+  def(['ver'], 'Print the OS version (DOS).', (ctx) => {
+    // DOS VER prints the real-mode personality banner.
+    const p = Kernel.personalities.dos;
+    ctx.print('\nMS-DOS Version ' + p.version + '  (LIMEdit BLOCK real-mode personality)\n' +
+              'Hybrid kernel archdos-hybrid 1.0 — arbitrated by LIMAWEK\n');
+  });
+  def(['date', 'time', 'get-date'], 'Print the date and time.', (ctx) => ctx.print(new Date().toString()));
+  def('uptime', 'Show how long the system has been up.', (ctx) =>
+    ctx.print(' up ' + Kernel.uptime() + ',  1 user,  load average: 0.09, 0.12, 0.07'));
+
+  def(['ps', 'get-process', 'gps'], 'List running processes.', (ctx) => {
+    ctx.print('  PID  %CPU   MEM  ABI     COMMAND');
+    for (const p of Kernel.processes)
+      ctx.print(pad(String(p.pid), 5) + pad(p.cpu.toFixed(1), 6) + pad(p.mem + 'M', 6) + pad(p.abi || 'linux', 8) + p.name);
+  });
+  def(['kill', 'stop-process'], 'Kill a process by PID.', (ctx, a) => {
+    const pid = Number(a.find((x) => /^\d+$/.test(x)));
+    if (!pid) return ctx.print('usage: kill <pid>', 'err');
+    const ok = Kernel.kill(pid);
+    ctx.print(ok ? 'killed ' + pid : 'kill: no such process: ' + pid, ok ? '' : 'err');
+  });
+  def(['free', 'mem'], 'Show memory usage.', (ctx) => {
+    const used = Kernel.memUsedMb(), tot = Kernel.system.memTotalMb;
+    ctx.print('               total        used        free');
+    ctx.print('Mem:     ' + pad(tot + 'M', 12) + pad(used + 'M', 12) + (tot - used) + 'M');
+    ctx.print('\n  ' + (tot - used) + ' MB free of ' + tot + ' MB — plenty of blocks.');
+  });
+  def('df', 'Show disk space (virtual).', (ctx) => {
+    ctx.print('Filesystem     Size  Used Avail Use%  Mounted on');
+    ctx.print('blockfs        256G   38G  218G  15%  /');
+  });
+
+  // ---------------- shell environment ----------------------------------
+  def(['history'], 'Show command history.', (ctx) =>
+    ctx.shell.history.forEach((h, i) => ctx.print(pad(String(i + 1), 5) + '  ' + h)));
+  def(['env', 'set', 'get-variable'], 'Show environment variables.', (ctx) => {
+    for (const [k, v] of Object.entries(ctx.shell.env)) ctx.print(k + '=' + v);
+  });
+  def('alias', 'Show or set aliases.', (ctx, a, raw) => {
+    if (!a.length) return Object.entries(ctx.shell.aliases).forEach(([k, v]) => ctx.print('alias ' + k + "='" + v + "'"));
+    const m = raw.replace(/^alias\s+/, '').match(/^(\w+)=["']?(.+?)["']?$/);
+    if (m) ctx.shell.aliases[m[1]] = m[2];
+  });
+  def(['prompt', 'path'], 'DOS PROMPT/PATH stubs.', (ctx, a, raw) =>
+    ctx.print(raw.toLowerCase().startsWith('path') ? 'PATH=/bin;/usr/bin;/home/lime/bin' : 'PROMPT set (cosmetic).', 'dim'));
+  def('$psversiontable', 'Show the PowerShell version table.', (ctx) => {
+    ctx.print('Name                           Value');
+    ctx.print('----                           -----');
+    ctx.print('PSVersion                      7.4.0-BLOCK');
+    ctx.print('PSEdition                      Core (archdos)');
+    ctx.print('OS                             LIMEdit BLOCK 1.0.0');
+  });
+
+  // ---------------- package manager ------------------------------------
+  def(['pacman'], 'Arch package manager.', (ctx, a) => {
+    const flags = a.filter((x) => x.startsWith('-')).join('').replace(/-/g, '');
+    const names = a.filter((x) => !x.startsWith('-'));
+    if (/Syu|Syyu|Su/.test(flags) || (flags.includes('S') && flags.includes('y') && !names.length)) {
+      ctx.print(':: Synchronizing package databases...');
+      ['core', 'extra', 'community', 'block'].forEach((r) => ctx.print(' ' + r + '                 up to date'));
+      ctx.print(':: Starting full system upgrade...\n there is nothing to do — BLOCK is bleeding-edge.', 'accent');
+      return;
+    }
+    if (flags.includes('S')) {   // install
+      if (!names.length) return ctx.print('error: no targets specified', 'err');
+      for (const n of names) {
+        if (!Pacman.inRepo(n)) { ctx.print('error: target not found: ' + n, 'err'); continue; }
+        if (Pacman.isInstalled(n)) { ctx.print(' ' + n + ' is up to date — reinstalling.', 'dim'); }
+        ctx.print('resolving dependencies...');
+        ctx.print('(1/1) installing ' + n + '  [' + '#'.repeat(20) + '] 100%');
+        const v = Pacman.install(n);
+        const hint = Pacman.isGui(n) ? 'Run `run ' + n + '` — LIMAWEK will service it on the Linux (Arch) kernel.'
+                                     : 'Installed into the Arch userland.';
+        ctx.print(':: ' + n + '-' + v + ' installed. ' + hint, 'accent');
+      }
+      return;
+    }
+    if (flags.includes('R')) {   // remove
+      for (const n of names) {
+        const ok = Pacman.remove(n);
+        ctx.print(ok ? 'removed ' + n : 'error: target not found: ' + n, ok ? '' : 'err');
+      }
+      return;
+    }
+    if (flags.includes('Q')) {   // query
+      if (names.length) return names.forEach((n) => ctx.print(Pacman.isInstalled(n) ? n + ' ' + Pacman.list().find((e) => e[0] === n)[1] : 'error: package "' + n + '" was not found', Pacman.isInstalled(n) ? '' : 'err'));
+      return Pacman.list().forEach(([n, v]) => ctx.print(n + ' ' + v));
+    }
+    if (flags.includes('s') || flags.includes('Ss')) {   // search
+      const hits = Pacman.search(names[0] || '');
+      if (!hits.length) return ctx.print('no results.', 'dim');
+      return hits.forEach((h) => ctx.print('block/' + h + ' ' + Pacman.repoVersion(h) + (Pacman.isInstalled(h) ? '  [installed]' : ''), 'accent'));
+    }
+    ctx.print('usage: pacman -S|-R|-Q|-Ss|-Syu <pkg>', 'dim');
+  }, { usage: 'pacman -S <pkg> | -R <pkg> | -Q | -Ss <term> | -Syu' });
+  def('apt', 'Debian-style front-end (routes to pacman).', (ctx, a) => {
+    ctx.print('Note: BLOCK is Arch-based. Translating to pacman…', 'dim');
+    const verb = a[0];
+    if (verb === 'install') cmds.pacman.run(ctx, ['-S', ...a.slice(1)]);
+    else if (verb === 'remove') cmds.pacman.run(ctx, ['-R', ...a.slice(1)]);
+    else if (verb === 'update' || verb === 'upgrade') cmds.pacman.run(ctx, ['-Syu']);
+    else if (verb === 'search') cmds.pacman.run(ctx, ['-Ss', ...a.slice(1)]);
+    else ctx.print('usage: apt install|remove|update|search <pkg>', 'dim');
+  });
+
+  // ---------------- hybrid kernel & LIMAWEK ----------------------------
+  def(['kernel', 'lsmod'], 'Inspect the hybrid kernel.', (ctx) => {
+    const p = Kernel.LIMAWEK.personality();
+    ctx.print('LIMEdit BLOCK — hybrid kernel  (archdos-hybrid 1.0)', 'accent');
+    ctx.print('  active personality : ' + p.name + '  ' + p.version + '  [' + p.cpu + ']');
+    ctx.print('  source             : ' + p.src);
+    ctx.print('  role               : ' + p.note);
+    ctx.print('');
+    ctx.print('  Personalities managed by LIMAWEK:', 'accent');
+    for (const key of ['dos', 'linux']) {
+      const pp = Kernel.personalities[key];
+      const on = Kernel.LIMAWEK.mode() === key ? '● live' : '○     ';
+      ctx.print('   ' + on + '  ' + pad(pp.name, 20) + pp.version + '   — ' + pp.src);
+    }
+    ctx.print('\n  A DOS verb (DIR, TYPE, VER…) pulls the kernel to real-mode;', 'dim');
+    ctx.print('  a Linux app or verb pulls it to the Arch kernel. `limawek log` shows switches.', 'dim');
+  });
+  def(['limawek', 'lima'], 'The kernel arbiter — status/log/mode control.', (ctx, a) => {
+    const sub = (a[0] || 'status').toLowerCase();
+    if (sub === 'status') { ctx.print(Kernel.LIMAWEK.status(), 'accent'); return; }
+    if (sub === 'log') {
+      const log = Kernel.LIMAWEK.log();
+      if (!log.length) return ctx.print('limawek: no kernel transitions yet — run a DOS verb then a Linux one.', 'dim');
+      log.forEach((e, i) => ctx.print(pad('#' + (i + 1), 5) + e.from + ' → ' + e.to + '   (' + e.workload + ')'));
+      return;
+    }
+    if (sub === 'mode') {
+      const m = (a[1] || '').toLowerCase();
+      if (m !== 'dos' && m !== 'linux') return ctx.print('usage: limawek mode <dos|linux>', 'err');
+      const line = Kernel.LIMAWEK.require(m, 'limawek');
+      ctx.print(line || ('already on ' + m + ' personality.'), 'kmsg');
+      return;
+    }
+    ctx.print('usage: limawek [status|log|mode <dos|linux>]', 'dim');
+  }, { usage: 'limawek status | log | mode <dos|linux>' });
+  def(['run', 'exec', 'launch'], 'Run a third-party Linux application on the Arch kernel.', (ctx, a) => {
+    const app = (a[0] || '').toLowerCase();
+    if (!app) return ctx.print('usage: run <installed-app>   e.g.  run firefox', 'err');
+    if (!Pacman.isInstalled(app)) {
+      ctx.print('run: ' + app + ': not installed. Try `pacman -S ' + app + '`.', 'err');
+      return;
+    }
+    // Third-party apps require the Linux kernel — LIMAWEK loads it.
+    const line = Kernel.LIMAWEK.require('linux', app);
+    if (line) ctx.print(line, 'kmsg');
+    ctx.print('kernel: loading ELF binary /usr/bin/' + app + ' against linux ' + Kernel.personalities.linux.version + ' …', 'dim');
+    const proc = Kernel.spawn(app, 40 + Math.floor(Math.random() * 60), 'linux');
+    ctx.print('[' + proc.pid + '] ' + app + ' running on the Linux (Arch) kernel.', 'accent');
+    // Give it a window if it maps to a known GUI app.
+    const winApp = ({ firefox: 'browser', 'block-browser': 'browser', gimp: 'editor', neovim: 'editor', htop: 'monitor', 'block-doom': 'about' })[app];
+    if (Pacman.isGui(app)) ctx.gui.openApp(winApp || 'about', { procName: app, pid: proc.pid });
+  }, { usage: 'run <app>   (installed third-party Linux app)' });
+  def(['dos', 'command.com'], 'Drop into an immersive MS-DOS real-mode session.', (ctx) => {
+    const line = Kernel.LIMAWEK.lock('dos', 'command.com');
+    if (line) ctx.print(line, 'kmsg');
+    ctx.gui.setDosMode(true);
+    ctx.print('');
+    ctx.print('Starting MS-DOS...', 'accent');
+    ctx.print('');
+    ctx.print('MS-DOS Version ' + Kernel.personalities.dos.version + '  (LIMEdit BLOCK real-mode personality)');
+    ctx.print('(C) LIMEdit BLOCK. Modelled on microsoft/MS-DOS (MIT).');
+    ctx.print('');
+    ctx.print('LIMAWEK is LOCKED to real-mode. Type EXIT to return to the hybrid shell.', 'dim');
+  });
+  def(['exit', 'logout', 'quit'], 'Leave DOS mode, or close this terminal window.', (ctx) => {
+    if (Kernel.LIMAWEK.isLocked()) {
+      const line = Kernel.LIMAWEK.unlock('limesh');
+      ctx.gui.setDosMode(false);
+      ctx.print('Returning to the hybrid limesh…', 'accent');
+      if (line) ctx.print(line, 'kmsg');
+      return;
+    }
+    ctx.gui.closeActiveTerminal();
+  });
+
+  // ---------------- GUI & apps -----------------------------------------
+  def(['apps', 'launchpad'], 'List / show installable GUI apps.', (ctx) => {
+    ctx.print('Applications (launch with `open <name>`):', 'accent');
+    ctx.print('  browser   files   about   editor   settings   monitor');
+    ctx.print('\nSome apps need the richer GUI. Unlock it with `fallback-gui ~allow`.', 'dim');
+  });
+  def(['open', 'start', 'start-process', 'gui'], 'Open a GUI application in a window.', (ctx, a) => {
+    const app = (a[0] || '').toLowerCase();
+    if (!app) return ctx.print('usage: open <browser|files|about|editor|settings|monitor>', 'err');
+    const ok = ctx.gui.openApp(app);
+    if (!ok) ctx.print('open: unknown app: ' + app, 'err');
+  });
+  def(['browser', 'block-browser', 'firefox'], 'Open the BLOCK web browser.', (ctx) => ctx.gui.openApp('browser'));
+  def(['theme'], 'Switch light/dark theme.', (ctx, a) => {
+    const t = a[0] || (document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('block.theme', t); } catch (_) {}
+    ctx.print('theme → ' + t);
+  });
+  def('wallpaper', 'Set or cycle the desktop wallpaper.', (ctx, a) => {
+    const now = ctx.gui.cycleWallpaper(a[0]);
+    ctx.print('wallpaper → ' + now + '   (options: ' + ctx.gui.wallpapers().join(', ') + ')');
+  }, { usage: 'wallpaper [lime|platinum|dusk|noir]' });
+
+  def(['fallback-gui', 'fallbackgui'], 'Enable/disable the richer fallback GUI.', (ctx, a) => {
+    const arg = (a[0] || '').replace(/^~?/, '');
+    if (arg === 'allow' || arg === 'enable' || arg === 'on') {
+      ctx.gui.setFallback(true);
+      ctx.print('fallback-GUI: ALLOWED. Detailed apps (browser, editor) now render full chrome.', 'accent');
+    } else if (arg === 'disable' || arg === 'deny' || arg === 'off') {
+      ctx.gui.setFallback(false);
+      ctx.print('fallback-GUI: DISABLED. Apps fall back to lightweight, shell-first windows.', 'accent');
+    } else {
+      ctx.print('fallback-GUI is currently: ' + (ctx.gui.fallback() ? 'ALLOWED' : 'disabled'));
+      ctx.print('usage: fallback-gui ~allow    |    fallback-gui ~disable', 'dim');
+    }
+  }, { usage: 'fallback-gui ~allow | ~disable' });
+
+  // ---------------- fun -------------------------------------------------
+  def('neofetch', 'Animated system banner.', (ctx) => {
+    const n = Neofetch.render();
+    ctx.printEl(n.el);
+    ctx.registerAnim(n.stop);
+  });
+  def('cowsay', 'A cow says your text.', (ctx, a, raw) => ctx.print(cowsay(raw.replace(/^cowsay\s*/i, ''))));
+  def('fortune', 'Print a random fortune.', (ctx) => ctx.print(FORTUNES[Math.floor(Math.random() * FORTUNES.length)]));
+  def(['ascii', 'figlet', 'banner'], 'Render big ASCII text.', (ctx, a, raw) => {
+    const text = raw.replace(/^\S+\s*/, '') || 'BLOCK';
+    const el = document.createElement('pre'); el.className = 'lolcat'; el.textContent = figlet(text);
+    ctx.printEl(el); ctx.registerAnim(Commands.lolcatAnimate(el));
+  });
+  def('lolcat', 'Rainbow-colour text.', (ctx, a, raw) => {
+    const el = document.createElement('pre'); el.className = 'lolcat';
+    el.textContent = raw.replace(/^lolcat\s*/i, '') || 'taste the rainbow, block by block';
+    ctx.printEl(el); ctx.registerAnim(Commands.lolcatAnimate(el));
+  });
+  def('sl', 'A steam locomotive chugs by. (You typed it wrong on purpose.)', (ctx) => {
+    ctx.print(['      ====        ________                ___________',
+      '  _D _|  |_______/        \\__I_I_____===__|_________|',
+      '   |(_)---  |   H\\________/ |   |        =|___ ___|   ',
+      '   /     |  |   H  |  |     |   |         ||_| |_||   ',
+      '  |      |  |   H  |__--------------------| [___] |   ',
+      '  | ________|___H__/__|_____/[][]~\\_______|       |   ',
+      '  |/ |   |-----------I_____I [][] []  D   |=======|__ '].join('\n'), 'accent');
+  });
+  def('matrix', 'Enter the matrix (5s).', (ctx) => {
+    const el = document.createElement('pre'); el.className = 'matrix'; ctx.printEl(el);
+    const cols = 60, glyph = () => 'ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜｿﾀ01'.charAt(Math.floor(Math.random() * 15));
+    let n = 0;
+    const id = setInterval(() => {
+      let s = ''; for (let r = 0; r < 8; r++) { for (let c = 0; c < cols; c++) s += Math.random() > 0.75 ? glyph() : ' '; s += '\n'; }
+      el.textContent = s; if (++n > 60) { clearInterval(id); el.textContent += '\n[decoded: there is no spoon — only blocks]'; }
+    }, 80);
+    ctx.registerAnim(() => clearInterval(id));
+  });
+  def('coffee', 'Brew a coffee.', (ctx) => ctx.print('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----´\n  ☕ HTCPCP 418: BLOCK is a teapot, but here is coffee anyway.'));
+  def('sudo', 'Superuser do — with attitude.', (ctx, a, raw) => {
+    const rest = raw.replace(/^sudo\s*/i, '');
+    if (/sandwich/i.test(rest)) return ctx.print('Okay. 🥪', 'accent');
+    if (!rest) return ctx.print('usage: sudo <command>', 'dim');
+    ctx.print('[sudo] password for lime: ********', 'dim');
+    ctx.print('lime is in the sudoers file. This incident will NOT be reported. Proceeding…', 'accent');
+    Shell.run(rest, ctx);   // actually run it as root-ish
+  });
+
+  // ---------------- live code ------------------------------------------
+  def(['code', 'js', 'eval'], 'Run JavaScript live inside the shell.', (ctx, a, raw) => {
+    const src = raw.replace(/^\S+\s*/, '');
+    if (!src) return ctx.print('usage: code <javascript>   — has: shell, fs, sys, gui, print(x)', 'dim');
+    const api = {
+      shell: ctx.shell, fs: Kernel.fs, sys: Kernel.system, gui: ctx.gui,
+      print: (x) => ctx.print(typeof x === 'object' ? JSON.stringify(x, null, 2) : String(x)),
+      Kernel,
+    };
+    try {
+      const fn = new Function(...Object.keys(api), '"use strict";return (' + src + ')');
+      let out;
+      try { out = fn(...Object.values(api)); }
+      catch (_) { // not an expression? run as statements
+        out = new Function(...Object.keys(api), '"use strict";' + src)(...Object.values(api));
+      }
+      if (out !== undefined) ctx.print(typeof out === 'object' ? JSON.stringify(out, null, 2) : String(out), 'accent');
+    } catch (e) { ctx.print('⚠ ' + e.message, 'err'); }
+  }, { usage: 'code <js>   e.g.  code sys.version   |   code print(2+2)' });
+
+  // ---------------- power ----------------------------------------------
+  def(['reboot', 'restart-computer'], 'Reboot the system.', (ctx) => { ctx.print('Rebooting BLOCK…'); setTimeout(() => location.reload(), 700); });
+  def(['shutdown', 'stop-computer', 'poweroff'], 'Shut the system down.', (ctx) => {
+    ctx.print('It is now safe to turn off your BLOCK. 🟩');
+    document.body.classList.add('poweroff');
+  });
+  // (exit is defined in the hybrid-kernel section so it can leave DOS mode.)
+
+  // ---------------- format (DOS gag, guarded) --------------------------
+  def('format', 'Format a drive (DOS) — refuses, wisely.', (ctx) =>
+    ctx.print('FORMAT: refusing to nuke blockfs. This is a nice place; let us keep it.', 'err'));
+
+  return {
+    table: cmds,
+    abi: abiOf,
+    lolcatAnimate(el) {
+      const text = el.textContent; el.textContent = '';
+      const spans = [...text].map((ch) => { const s = document.createElement('span'); s.textContent = ch; el.appendChild(s); return s; });
+      let t = 0, running = true;
+      (function f() {
+        if (!running) return; t += 0.08;
+        spans.forEach((s, i) => { if (s.textContent.trim()) s.style.color = `hsl(${(t * 40 + i * 6) % 360},80%,60%)`; });
+        requestAnimationFrame(f);
+      })();
+      return () => { running = false; };
+    },
+  };
+})();
+window.Commands = Commands;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — shell.js
+ * limesh: the interactive shell that fronts the hybrid kernel.
+ *
+ * Every command is arbitrated by LIMAWEK before it runs — a DOS verb flips the
+ * kernel to real-mode, a Linux verb flips it back — and the *prompt itself
+ * changes* to show which personality is live:
+ *
+ *      C:\HOME\LIME>            (DOS real-mode)
+ *      [lime@limebox ~]$        (Linux / Arch)
+ *
+ * limesh is also a real shell, not just a dispatcher:
+ *
+ *      help | grep pacman            pipes (grep · head · tail · wc · sort · uniq)
+ *      ls > listing.txt              redirection (> and >>)
+ *      mkdir demo && cd demo         command chaining
+ */
+'use strict';
+
+const Shell = (() => {
+  function tokenize(line) {
+    const out = []; let cur = '', q = null;
+    for (const ch of line) {
+      if (q) { if (ch === q) q = null; else cur += ch; }
+      else if (ch === '"' || ch === "'") q = ch;
+      else if (ch === ' ') { if (cur) { out.push(cur); cur = ''; } }
+      else cur += ch;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  // Split on a top-level operator, respecting quotes.
+  function splitOp(line, op) {
+    const parts = []; let cur = '', q = null;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) { if (ch === q) q = null; cur += ch; continue; }
+      if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
+      if (op === '&&' && ch === '&' && line[i + 1] === '&') { parts.push(cur); cur = ''; i++; continue; }
+      if (op === '|' && ch === '|' && line[i + 1] !== '|' && line[i - 1] !== '|') { parts.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    parts.push(cur);
+    return parts;
+  }
+
+  // Trailing `> file` / `>> file` (unquoted).
+  function stripRedirect(line) {
+    const m = line.match(/(>>?)\s*([^\s>]+)\s*$/);
+    if (!m || line.slice(0, m.index).split('"').length % 2 === 0) return { line, mode: null };
+    return { line: line.slice(0, m.index).trim(), mode: m[1], target: m[2] };
+  }
+
+  // Pipe filters operate on captured plain-text lines.
+  function applyFilter(lines, seg, ctx) {
+    const t = tokenize(seg);
+    const f = (t[0] || '').toLowerCase();
+    const nArg = () => { const i = t.indexOf('-n'); if (i >= 0) return Number(t[i + 1]) || 10; if (t[1] && /^\d+$/.test(t[1])) return +t[1]; return 10; };
+    if (f === 'grep') {
+      if (!t[1]) { ctx.print('grep: missing pattern', 'err'); return []; }
+      let re; try { re = new RegExp(t[1], 'i'); } catch (_) { ctx.print('grep: invalid pattern', 'err'); return []; }
+      return lines.filter((l) => re.test(l));
+    }
+    if (f === 'head') return lines.slice(0, nArg());
+    if (f === 'tail') return lines.slice(-nArg());
+    if (f === 'wc') {
+      const text = lines.join('\n');
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      return [`      ${lines.length}      ${words}      ${text.length}`];
+    }
+    if (f === 'sort') return [...lines].sort();
+    if (f === 'uniq') return lines.filter((l, i) => l !== lines[i - 1]);
+    ctx.print('limesh: unsupported pipe filter: ' + f + '  (grep|head|tail|wc|sort|uniq)', 'err');
+    return lines;
+  }
+
+  // A ctx whose writers append plain text to a buffer (for pipes/redirects).
+  function captureCtx(ctx, buf) {
+    return {
+      ...ctx,
+      print: (t = '') => String(t).split('\n').forEach((l) => buf.push(l)),
+      printHTML: (h = '') => { const d = document.createElement('div'); d.innerHTML = h; buf.push(d.textContent); },
+      printEl: (elm) => String(elm.textContent || '').split('\n').forEach((l) => buf.push(l)),
+      clear: () => { buf.length = 0; },
+      registerAnim: (fn) => { try { fn(); } catch (_) {} },   // animations are meaningless in a pipe
+    };
+  }
+
+  function dosPath(cwd) {
+    const parts = cwd.split('/').filter(Boolean).map((s) => s.toUpperCase());
+    return 'C:\\' + parts.join('\\') + '>';
+  }
+
+  // ------------------------------------------------------------ terminal
+  function create(mountEl, gui, opts = {}) {
+    const state = {
+      cwd: '/home/lime',
+      env: { USER: 'lime', HOME: '/home/lime', SHELL: '/bin/limesh', TERM: 'limeterm', PATH: '/bin:/usr/bin' },
+      aliases: { ll: 'ls -l', la: 'ls -la', '..': 'cd ..' },
+      history: [], histIdx: -1,
+      isRoot: !!opts.root,
+    };
+
+    mountEl.classList.add('term');
+    const output = document.createElement('div'); output.className = 'term-out';
+    const inputLine = document.createElement('div'); inputLine.className = 'term-inputline';
+    const promptEl = document.createElement('span'); promptEl.className = 'term-prompt';
+    const input = document.createElement('input'); input.className = 'term-input';
+    input.setAttribute('autocomplete', 'off'); input.setAttribute('spellcheck', 'false');
+    inputLine.append(promptEl, input);
+    mountEl.append(output, inputLine);
+
+    const anims = [];
+    const stopAnims = () => { while (anims.length) { try { anims.pop()(); } catch (_) {} } };
+
+    function promptStr() {
+      if (Kernel.LIMAWEK.personality().prompt === 'dos') return dosPath(state.cwd) + ' ';
+      const cwd = state.cwd.replace('/home/lime', '~');
+      return `[lime@limebox ${cwd.split('/').pop() || '/'}]$ `;
+    }
+    const refreshPrompt = () => { promptEl.textContent = promptStr(); promptEl.className = 'term-prompt ' + Kernel.LIMAWEK.personality().prompt; };
+    const scroll = () => { mountEl.scrollTop = mountEl.scrollHeight; };
+
+    const ctx = {
+      shell: state, gui,
+      registerAnim: (fn) => anims.push(fn),
+      print(text = '', cls = '') { const pre = document.createElement('pre'); pre.className = 'term-line' + (cls ? ' ' + cls : ''); pre.textContent = String(text); output.appendChild(pre); scroll(); },
+      printHTML(html, cls = '') { const pre = document.createElement('pre'); pre.className = 'term-line' + (cls ? ' ' + cls : ''); pre.innerHTML = html; output.appendChild(pre); scroll(); },
+      printEl(elm) { output.appendChild(elm); scroll(); },
+      clear() { output.innerHTML = ''; },
+    };
+
+    function echoCommand(line) {
+      const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const pre = document.createElement('pre');
+      pre.className = 'term-line term-echo';
+      pre.innerHTML = `<span class="term-prompt ${Kernel.LIMAWEK.personality().prompt}">${esc(promptStr())}</span>${esc(line)}`;
+      output.appendChild(pre);
+    }
+
+    function execute(line) { stopAnims(); run(line, ctx); refreshPrompt(); scroll(); }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const line = input.value; echoCommand(line); input.value = '';
+        if (line.trim()) { state.history.push(line); state.histIdx = state.history.length; }
+        execute(line);
+      } else if (e.key === 'ArrowUp') { if (state.histIdx > 0) { state.histIdx--; input.value = state.history[state.histIdx] || ''; } e.preventDefault(); }
+      else if (e.key === 'ArrowDown') { if (state.histIdx < state.history.length - 1) { state.histIdx++; input.value = state.history[state.histIdx] || ''; } else { state.histIdx = state.history.length; input.value = ''; } e.preventDefault(); }
+      else if (e.key === 'Tab') { e.preventDefault(); completeTab(); }
+      else if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); ctx.clear(); }
+      else if (e.key === 'u' && e.ctrlKey) { e.preventDefault(); input.value = ''; }
+      else if (e.key === 'c' && e.ctrlKey && !window.getSelection().toString()) { echoCommand(input.value + '^C'); input.value = ''; }
+    });
+
+    function completeTab() {
+      const parts = tokenize(input.value);
+      if (parts.length <= 1 && !input.value.endsWith(' ')) {
+        const frag = (parts[0] || '').toLowerCase();
+        const hits = Object.keys(Commands.table).filter((c) => c.startsWith(frag));
+        if (hits.length === 1) input.value = hits[0] + ' ';
+        else if (hits.length > 1) ctx.print(hits.join('  '), 'dim');
+      } else {
+        const frag = parts[parts.length - 1] || '';
+        const base = frag.includes('/') ? frag.slice(0, frag.lastIndexOf('/') + 1) : '';
+        const seek = frag.slice(base.length);
+        const dirAbs = Kernel.fs.normalize(state.cwd, base || '.');
+        if (Kernel.fs.isDir(dirAbs)) {
+          const hits = Object.keys(Kernel.fs.list(dirAbs)).filter((n) => n.startsWith(seek));
+          if (hits.length === 1) { parts[parts.length - 1] = base + hits[0] + (Kernel.fs.isDir(dirAbs + '/' + hits[0]) ? '/' : ''); input.value = parts.join(' '); }
+          else if (hits.length > 1) ctx.print(hits.join('  '), 'dim');
+        }
+      }
+    }
+
+    mountEl.addEventListener('mousedown', () => setTimeout(() => input.focus(), 0));
+
+    refreshPrompt();
+    ctx.print(Kernel.fs.read('/etc/motd').replace(/\n$/, ''), 'accent');
+    setTimeout(() => input.focus(), 30);
+
+    Kernel.LIMAWEK.onChange(() => refreshPrompt());
+
+    return { state, ctx, focus: () => input.focus(), execute };
+  }
+
+  // ------------------------------------------------------------ dispatch
+  /* Run a single simple command (no operators). Kernel-switch messages go to
+     msgCtx (the live terminal) even when output is being captured. */
+  function dispatch(line, ctx, msgCtx) {
+    msgCtx = msgCtx || ctx;
+    line = String(line).trim();
+    if (!line || line.startsWith('#') || /^rem\s/i.test(line)) return;
+
+    let tokens = tokenize(line);
+    const first = tokens[0];
+    if (ctx.shell.aliases[first]) { tokens = tokenize(ctx.shell.aliases[first]).concat(tokens.slice(1)); line = tokens.join(' '); }
+
+    const name = (tokens[0] || '').toLowerCase();
+    const args = tokens.slice(1);
+    const cmd = Commands.table[name];
+
+    if (!cmd) {
+      if (Kernel.LIMAWEK.personality().prompt === 'dos') { ctx.print('Bad command or file name', 'err'); return; }
+      ctx.print(`limesh: command not found: ${tokens[0]}`, 'err');
+      const guess = Object.keys(Commands.table).find((c) => c.startsWith(name.slice(0, 3)));
+      if (guess) ctx.print('  did you mean `' + guess + '`?  (try `help`)', 'dim');
+      return;
+    }
+
+    // LIMAWEK arbitrates: present the personality this workload's ABI needs.
+    const switchLine = Kernel.LIMAWEK.require(Commands.abi(name), tokens[0]);
+    if (switchLine) msgCtx.print(switchLine, 'kmsg');
+
+    try { cmd.run(ctx, args, line); }
+    catch (e) { ctx.print('limesh: ' + name + ': ' + e.message, 'err'); }
+  }
+
+  // One `&&` segment: handle redirection + pipes.
+  function runSingle(line, ctx) {
+    const red = stripRedirect(line);
+    const stages = splitOp(red.line, '|').map((s) => s.trim()).filter(Boolean);
+    if (!stages.length) return;
+
+    if (stages.length === 1 && !red.mode) return dispatch(stages[0], ctx);
+
+    const buf = [];
+    dispatch(stages[0], captureCtx(ctx, buf), ctx);
+    let lines = buf;
+    for (let i = 1; i < stages.length; i++) lines = applyFilter(lines, stages[i], ctx);
+
+    if (red.mode) {
+      try {
+        const abs = Kernel.fs.normalize(ctx.shell.cwd, red.target);
+        const text = lines.join('\n') + (lines.length ? '\n' : '');
+        if (red.mode === '>>' && Kernel.fs.isFile(abs)) Kernel.fs.write(abs, Kernel.fs.read(abs) + text);
+        else Kernel.fs.write(abs, text);
+      } catch (e) { ctx.print('limesh: redirect: ' + e.message, 'err'); }
+    } else {
+      lines.forEach((l) => ctx.print(l));
+    }
+  }
+
+  // Public entry: full command line with && chaining.
+  function run(line, ctx) {
+    for (const seg of splitOp(String(line), '&&')) {
+      const s = seg.trim();
+      if (s) runSingle(s, ctx);
+    }
+  }
+
+  return { create, run, tokenize };
+})();
+window.Shell = Shell;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — apps.js
+ * The GUI applications. Each factory (name, gui, meta) returns
+ * { title, icon, node, w, h, onClose? }.
+ *
+ * The browser is the flagship "detailed fallback-GUI" app: with the fallback
+ * GUI ALLOWED it renders full chrome (toolbar + bookmarks bar + rich pages);
+ * DISABLED, it degrades to a lightweight, shell-first view.
+ */
+'use strict';
+
+const Apps = (() => {
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+
+  // ------------------------------------------------------------ Browser
+  const SITES = {
+    'lime://welcome': () => `
+      <div class="pg-hero">
+        <div class="pg-logo">🟩</div>
+        <h1>Welcome to LIMEdit BLOCK</h1>
+        <p>The operating system where the GUI <em>is</em> the terminal. A hybrid
+        kernel — arbitrated by <b>LIMAWEK</b> — welds <b>Arch Linux</b> to the
+        classic <b>MS-DOS</b> command set.</p>
+        <div class="pg-links">
+          <a href="#" data-go="arch://wiki">Arch-style wiki ▸</a>
+          <a href="#" data-go="dos://prompt">DOS prompt lore ▸</a>
+          <a href="#" data-go="block://apps">Get apps ▸</a>
+        </div>
+        <h2 class="pg-h2">🌍 Real internet</h2>
+        <p class="pg-dim">Type any address or search words in the bar above — this
+        browser loads the actual web. Some sites refuse to be embedded; use the
+        ↗ button to pop them out.</p>
+        <div class="pg-links">
+          <a href="#" data-go="https://example.com">example.com ▸</a>
+          <a href="#" data-go="https://en.wikipedia.org/wiki/MS-DOS">wikipedia: MS-DOS ▸</a>
+          <a href="#" data-go="https://archlinux.org">archlinux.org ▸</a>
+        </div>
+      </div>`,
+    'arch://wiki': () => `
+      <h1>BLOCK Wiki — pacman</h1>
+      <p>BLOCK inherits Arch's rolling-release philosophy and the <code>pacman</code>
+      package manager.</p>
+      <pre>pacman -Syu           # upgrade the whole system
+pacman -S firefox     # install a package
+pacman -Ss editor     # search the repos
+pacman -Q             # list installed packages
+run firefox           # LIMAWEK services it on the Linux kernel</pre>
+      <p>Try any of these back in the console. <a href="#" data-go="lime://welcome">◂ home</a></p>`,
+    'dos://prompt': () => `
+      <h1>The DOS heritage</h1>
+      <p>Under the lime skin, COMMAND.COM lives on. Every classic verb still works,
+      case-insensitively — and pulls the hybrid kernel into real-mode:</p>
+      <pre>C:\\HOME\\LIME&gt; DIR
+C:\\HOME\\LIME&gt; TYPE readme.txt
+C:\\HOME\\LIME&gt; VER
+C:\\HOME\\LIME&gt; CLS</pre>
+      <p>Type <code>dos</code> for the immersive CRT session. Modelled on
+      <b>microsoft/MS-DOS</b> (MIT). <a href="#" data-go="lime://welcome">◂ home</a></p>`,
+    'block://apps': () => `
+      <h1>BLOCK App Store</h1>
+      <ul class="pg-apps">
+        <li><b>block-browser</b> — you're using it. <code>pacman -S block-browser</code></li>
+        <li><b>htop</b> — process viewer. <code>pacman -S htop && run htop</code></li>
+        <li><b>cmatrix</b> — digital rain. <code>pacman -S cmatrix</code> then <code>matrix</code></li>
+        <li><b>neofetch</b> — flex your specs. <code>neofetch</code></li>
+        <li><b>block-doom</b> — someone always ports it. <code>pacman -S block-doom</code></li>
+      </ul>
+      <a href="#" data-go="lime://welcome">◂ home</a>`,
+  };
+  const INTERNAL = /^(lime|arch|dos|block):\/\//;
+  function litePage() {
+    return `<h1>Real-web browsing needs the detailed GUI</h1>
+      <p>The lightweight, shell-first browser only renders BLOCK's built-in pages.
+      Loading the <b>actual internet</b> is a rich-chrome feature.</p>
+      <pre>fallback-gui ~allow</pre>
+      <p>Run that in the console, close this window, and reopen the browser.</p>
+      <p><a href="#" data-go="lime://welcome">◂ home</a></p>`;
+  }
+
+  function browser(gui, meta = {}) {
+    const rich = gui.fallback();
+    const root = el('div', 'browser' + (rich ? ' rich' : ' lite'));
+
+    if (!rich) {
+      root.appendChild(el('div', 'lite-note',
+        '⚠ Fallback-GUI is <b>disabled</b> — showing the lightweight, shell-first browser.<br>' +
+        'Run <code>fallback-gui ~allow</code> in the console for the full, detailed browser.'));
+    }
+
+    const bar = el('div', 'br-bar');
+    const back = el('button', 'br-btn', '◂');
+    const fwd = el('button', 'br-btn', '▸');
+    const reload = el('button', 'br-btn', '⟳');
+    const addr = el('input', 'br-addr');
+    const go = el('button', 'br-btn br-go', 'Go');
+    bar.append(back, fwd, reload, addr, go);
+    const page = el('div', 'br-page');
+    root.appendChild(bar);
+    if (rich) {                          // bookmarks bar is part of the rich chrome
+      const marks = el('div', 'br-marks');
+      for (const url of Object.keys(SITES)) {
+        const b = el('button', 'br-mark', url.replace('://', ' · '));
+        b.onclick = () => navigate(url);
+        marks.appendChild(b);
+      }
+      root.appendChild(marks);
+    }
+    root.appendChild(page);
+
+    const start = meta.url || 'lime://welcome';
+    const hist = [start]; let hi = 0;
+
+    // A real web page: an <iframe> onto the actual internet, with an info bar
+    // and a pop-out button for sites that refuse to be embedded.
+    function renderWeb(url) {
+      page.innerHTML = '';
+      page.classList.add('br-webpage');
+      const info = el('div', 'br-info',
+        `<span>🌍 real internet — if the page stays blank, the site refuses embedding</span>`);
+      const pop = el('a', 'br-pop', 'open ↗');
+      pop.href = url; pop.target = '_blank'; pop.rel = 'noopener noreferrer';
+      info.appendChild(pop);
+      const frame = document.createElement('iframe');
+      frame.className = 'br-frame';
+      frame.src = url;
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+      frame.referrerPolicy = 'no-referrer';
+      page.append(info, frame);
+    }
+
+    function render(url) {
+      addr.value = url;
+      page.classList.remove('br-webpage');
+      const fn = SITES[url];
+      if (fn) page.innerHTML = fn();
+      else if (!rich) page.innerHTML = litePage();
+      else return renderWeb(url);
+      page.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); navigate(a.dataset.go); }));
+    }
+    function navigate(url) {
+      url = url.trim();
+      if (!INTERNAL.test(url) && !/^https?:\/\//i.test(url)) {
+        if (SITES['lime://' + url]) url = 'lime://' + url;                       // bare internal name
+        else if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(url)) url = 'https://' + url; // bare domain
+        else url = 'https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(url); // search
+      }
+      hist.splice(hi + 1); hist.push(url); hi = hist.length - 1; render(url);
+    }
+    back.onclick = () => { if (hi > 0) render(hist[--hi]); };
+    fwd.onclick = () => { if (hi < hist.length - 1) render(hist[++hi]); };
+    reload.onclick = () => render(hist[hi]);
+    go.onclick = () => navigate(addr.value.trim());
+    addr.addEventListener('keydown', (e) => { if (e.key === 'Enter') navigate(addr.value.trim()); });
+    render(start);
+
+    return { title: 'BLOCK Browser', icon: '🌐', node: root, w: 740, h: 520 };
+  }
+
+  // ------------------------------------------------------------ Files
+  const EXT_ICON = { md: '📘', txt: '📄', js: '📜', json: '🧾', log: '🧾', sys: '⚙️' };
+  function fileIcon(name, isDir) {
+    if (isDir) return '📁';
+    const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+    return EXT_ICON[ext] || '📄';
+  }
+
+  function files(gui, meta = {}) {
+    const root = el('div', 'files');
+    const tools = el('div', 'files-tools');
+    const bNewF = el('button', 'br-btn', 'New File');
+    const bNewD = el('button', 'br-btn', 'New Folder');
+    const bDel = el('button', 'br-btn', 'Delete');
+    const bRef = el('button', 'br-btn', '⟳');
+    tools.append(bNewF, bNewD, bDel, bRef);
+    const path = el('div', 'files-path');
+    const list = el('div', 'files-list');
+    const prev = el('pre', 'files-preview', '');
+    const grid = el('div', 'files-grid');
+    grid.append(list, prev);
+    root.append(tools, path, grid);
+
+    let cwd = meta.path || '/home/lime';
+    let selected = null;
+
+    function crumbs(abs) {
+      path.innerHTML = '';
+      const segs = abs.split('/').filter(Boolean);
+      const mk = (label, target) => {
+        const b = el('button', 'files-crumb', label);
+        b.onclick = () => open(target);
+        path.appendChild(b);
+      };
+      mk('/', '/');
+      let acc = '';
+      for (const s of segs) { acc += '/' + s; path.appendChild(el('span', null, '›')); mk(s, acc); }
+    }
+
+    function open(abs) {
+      cwd = abs; selected = null; prev.textContent = '';
+      crumbs(abs);
+      list.innerHTML = '';
+      if (abs !== '/') {
+        const up = el('div', 'file-row dir', '📁 ..');
+        up.ondblclick = () => open(abs.split('/').slice(0, -1).join('/') || '/');
+        up.onclick = up.ondblclick;
+        list.appendChild(up);
+      }
+      for (const [name, n] of Object.entries(Kernel.fs.list(abs))) {
+        const isDir = n.type === 'dir';
+        const row = el('div', 'file-row ' + (isDir ? 'dir' : 'file'));
+        row.append(el('span', null, fileIcon(name, isDir)), document.createTextNode(' ' + name));
+        row.appendChild(el('span', 'file-meta', isDir ? '—' : n.content.length + ' B'));
+        const full = abs === '/' ? '/' + name : abs + '/' + name;
+        row.onclick = () => {
+          list.querySelectorAll('.file-row').forEach((r) => r.classList.remove('sel'));
+          row.classList.add('sel');
+          selected = { full, isDir };
+          prev.textContent = isDir ? '' : Kernel.fs.read(full);
+        };
+        row.ondblclick = () => { if (isDir) open(full); else gui.openApp('editor', { path: full }); };
+        list.appendChild(row);
+      }
+    }
+
+    bRef.onclick = () => open(cwd);
+    bNewF.onclick = () => { const name = prompt('New file name:'); if (!name) return; try { Kernel.fs.write(Kernel.fs.normalize(cwd, name), ''); open(cwd); } catch (e) { alert(e.message); } };
+    bNewD.onclick = () => { const name = prompt('New folder name:'); if (!name) return; try { Kernel.fs.mkdir(Kernel.fs.normalize(cwd, name)); open(cwd); } catch (e) { alert(e.message); } };
+    bDel.onclick = () => { if (!selected) return; try { Kernel.fs.remove(selected.full); open(cwd); } catch (e) { alert(e.message); } };
+
+    open(cwd);
+    return { title: 'Files', icon: '🗂️', node: root, w: 660, h: 440 };
+  }
+
+  // ------------------------------------------------------------ About
+  function about() {
+    const root = el('div', 'about');
+    const n = Neofetch.render();
+    const head = el('div', 'about-head',
+      `<div class="about-logo">🟩</div><div><h1>LIMEdit BLOCK</h1>
+       <div class="about-ver">Version ${Kernel.system.version} “${Kernel.system.codename}” · archdos-hybrid 1.0</div></div>`);
+    root.append(head, n.el);
+    root.appendChild(el('div', 'about-info',
+      `<p>A modern operating environment built around a <b>hybrid kernel</b>:
+      LIMAWEK arbitrates between an <b>MS-DOS real-mode</b> personality and a
+      <b>Linux (Arch)</b> kernel, switching wherever each workload needs.</p>`));
+    root.appendChild(el('div', 'about-credit',
+      'Modelled on two officially open-sourced code bases: Arch Linux (pacman, rolling userland) ' +
+      'and microsoft/MS-DOS (MIT). Desktop chrome in the spirit of Mac OS 9.2.2 “Platinum”. ' +
+      'Everything runs client-side; no real disk is touched.'));
+    return { title: 'About This System', icon: 'ℹ️', node: root, w: 660, h: 580, onClose: () => n.stop() };
+  }
+
+  // ------------------------------------------------------------ Editor
+  function editor(gui, meta = {}) {
+    const root = el('div', 'editor');
+    const bar = el('div', 'ed-bar');
+    const pathIn = el('input', 'ed-path');
+    pathIn.value = meta.path || '/home/lime/readme.txt';
+    const load = el('button', 'br-btn', 'Open');
+    const save = el('button', 'br-btn', 'Save');
+    bar.append(pathIn, load, save);
+    const ta = el('textarea', 'ed-area');
+    ta.spellcheck = false;
+    const status = el('div', 'ed-status');
+    const posEl = el('span', null, 'Ln 1, Col 1');
+    const lenEl = el('span', null, '0 chars');
+    const kernEl = el('span', null, 'linux · arch userland');
+    status.append(posEl, lenEl, kernEl);
+    root.append(bar, ta, status);
+
+    function refreshStatus() {
+      const upto = ta.value.slice(0, ta.selectionStart);
+      const ln = upto.split('\n').length;
+      const col = upto.length - upto.lastIndexOf('\n');
+      posEl.textContent = `Ln ${ln}, Col ${col}`;
+      lenEl.textContent = ta.value.length + ' chars';
+    }
+    ta.addEventListener('input', refreshStatus);
+    ta.addEventListener('keyup', refreshStatus);
+    ta.addEventListener('click', refreshStatus);
+
+    function doLoad() {
+      const abs = Kernel.fs.normalize('/home/lime', pathIn.value);
+      ta.value = Kernel.fs.isFile(abs) ? Kernel.fs.read(abs) : '';
+      refreshStatus();
+    }
+    load.onclick = doLoad;
+    save.onclick = () => {
+      try {
+        Kernel.fs.write(Kernel.fs.normalize('/home/lime', pathIn.value), ta.value);
+        save.textContent = 'Saved ✓'; setTimeout(() => (save.textContent = 'Save'), 1000);
+      } catch (e) { alert(e.message); }
+    };
+    doLoad();
+    return { title: 'BLOCK Editor', icon: '📝', node: root, w: 660, h: 480 };
+  }
+
+  // ------------------------------------------------------------ Settings
+  function mkSwitch(checked, onchange) {
+    const label = el('label', 'switch');
+    const input = document.createElement('input');
+    input.type = 'checkbox'; input.checked = checked;
+    input.addEventListener('change', () => onchange(input.checked));
+    label.append(input, el('i'));
+    return label;
+  }
+
+  function settings(gui) {
+    const root = el('div', 'settings');
+    root.append(el('h1', null, 'System Preferences'));
+
+    root.append(el('h2', null, 'Appearance'));
+    const rowTheme = el('div', 'set-row', '<span>Dark theme</span>');
+    rowTheme.appendChild(mkSwitch(document.documentElement.dataset.theme === 'dark', (on) => {
+      if (on) document.documentElement.dataset.theme = 'dark';
+      else delete document.documentElement.dataset.theme;
+      try { localStorage.setItem('block.theme', on ? 'dark' : 'light'); } catch (_) {}
+    }));
+    const rowWall = el('div', 'set-row', '<span>Wallpaper</span>');
+    const sw = el('div', 'wp-swatches');
+    for (const name of gui.wallpapers()) {
+      const b = el('button', 'wp-sw ' + name + (gui.wallpaper() === name ? ' on' : ''));
+      b.title = name;
+      b.onclick = () => { gui.setWallpaper(name); sw.querySelectorAll('.wp-sw').forEach((x) => x.classList.remove('on')); b.classList.add('on'); };
+      sw.appendChild(b);
+    }
+    rowWall.appendChild(sw);
+    root.append(rowTheme, rowWall);
+
+    root.append(el('h2', null, 'Windows & motion'));
+    const rowFb = el('div', 'set-row', '<span>Fallback-GUI (rich app chrome)</span>');
+    rowFb.appendChild(mkSwitch(gui.fallback(), (on) => gui.setFallback(on)));
+    const rowMotion = el('div', 'set-row', '<span>Animations</span>');
+    rowMotion.appendChild(mkSwitch(gui.motion(), (on) => gui.setMotion(on)));
+    root.append(rowFb, rowMotion);
+
+    root.append(el('p', 'pg-dim', 'These mirror the `theme`, `wallpaper`, and `fallback-gui` shell commands.'));
+    return { title: 'System Preferences', icon: '⚙️', node: root, w: 500, h: 430 };
+  }
+
+  // ------------------------------------------------------------ Monitor
+  function monitor() {
+    const root = el('div', 'monitor');
+    const head = el('div', 'mon-head');
+    const rows = el('div', 'mon-rows');
+    root.append(head, rows);
+
+    function render() {
+      const used = Kernel.memUsedMb(), tot = Kernel.system.memTotalMb;
+      head.textContent = `Memory ${(used / 1024).toFixed(1)} / ${(tot / 1024).toFixed(1)} GiB · Uptime ${Kernel.uptime()} · Kernel ${Kernel.LIMAWEK.personality().name}`;
+      rows.innerHTML = '';
+      const hdr = el('div', 'mon-row hdr');
+      ['pid', 'command', 'cpu', '%', 'mem', ''].forEach((h) => hdr.appendChild(el('span', null, h)));
+      rows.appendChild(hdr);
+      for (const p of Kernel.processes) {
+        p.cpu = Math.max(0, Math.min(9.9, +(p.cpu + (Math.random() - 0.5)).toFixed(1)));
+        const row = el('div', 'mon-row');
+        row.appendChild(el('span', null, String(p.pid)));
+        row.appendChild(el('span', null, p.name + ' <span style="opacity:.5">· ' + (p.abi || 'linux') + '</span>'));
+        const bar = el('div', 'mon-cpu'); bar.appendChild(el('i')).style.width = Math.min(100, p.cpu * 10) + '%';
+        row.appendChild(bar);
+        row.appendChild(el('span', null, p.cpu.toFixed(1)));
+        row.appendChild(el('span', null, p.mem + 'M'));
+        const kill = el('button', 'mon-kill', '✕');
+        kill.title = 'End process';
+        if (p.pid < 10) { kill.disabled = true; kill.title = 'System process'; }
+        else kill.onclick = () => { Kernel.kill(p.pid); render(); };
+        row.appendChild(kill);
+        rows.appendChild(row);
+      }
+    }
+    render();
+    const id = setInterval(render, 1200);
+    return { title: 'Activity Monitor', icon: '📊', node: root, w: 560, h: 440, onClose: () => clearInterval(id) };
+  }
+
+  const registry = { browser, files, about, editor, settings, monitor };
+
+  return {
+    create(name, gui, meta) {
+      const fn = registry[name];
+      return fn ? fn(gui, meta || {}) : null;
+    },
+    names: () => Object.keys(registry),
+  };
+})();
+window.Apps = Apps;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — gui.js
+ * BlockWM / Block9: the always-on, System-9.2.2-styled window manager.
+ *
+ * The rule "the GUI is the terminal" is literal: BlockWM boots a maximized
+ * *root console* that can never be closed, so the WM always has at least one
+ * window to manage. Everything else — apps, and third-party Linux binaries
+ * launched with `run` — floats above it as draggable, resizable, minimizable
+ * windows with Platinum pinstriped title bars.
+ *
+ * Desktop furniture: a Platinum menu bar with a System-9-style Application
+ * menu (far right), desktop icons that float on the console, and a launcher
+ * dock with running indicators.
+ */
+'use strict';
+
+const GUI = (() => {
+  const windowsEl = () => document.getElementById('windows');
+  const dockEl = () => document.getElementById('dock');
+  const menuDrop = () => document.getElementById('menu-drop');
+
+  let z = 10;
+  let fallbackAllowed = false;
+  let dosMode = false;
+  const openWins = [];
+  let termCount = 0;
+  let activeTerminal = null;
+  let rootConsole = null;
+  let focused = null;
+  let drag = null, resize = null;
+
+  const WALLPAPERS = ['lime', 'platinum', 'dusk', 'noir'];
+  let wallpaper = 'lime';
+
+  const LAUNCHERS = [
+    ['terminal', '▤', 'Terminal'],
+    ['browser', '🌐', 'Browser'],
+    ['files', '🗂️', 'Files'],
+    ['editor', '📝', 'Editor'],
+    ['monitor', '📊', 'Monitor'],
+    ['settings', '⚙️', 'Settings'],
+  ];
+
+  const store = {
+    get: (k) => { try { return localStorage.getItem('block.' + k); } catch (_) { return null; } },
+    set: (k, v) => { try { localStorage.setItem('block.' + k, v); } catch (_) {} },
+  };
+
+  // ---------------------------------------------------------- badges
+  function updateWmBadge() {
+    const b = document.getElementById('mb-wm');
+    if (b) b.textContent = '▚ BlockWM · ' + openWins.length + (openWins.length === 1 ? ' win' : ' wins');
+  }
+  function updateAppWinMenu() {
+    const b = document.getElementById('mb-appwin');
+    if (!b) return;
+    const rec = focused || rootConsole;
+    if (rec) b.textContent = (rec.spec.icon || '▢') + ' ' + rec.spec.title.split(' — ')[0];
+  }
+  function updateDockDots() {
+    document.querySelectorAll('.dock-btn[data-app]').forEach((btn) => {
+      const app = btn.dataset.app;
+      btn.classList.toggle('running', openWins.some((r) => r.appName === app));
+    });
+  }
+  function refreshChrome() { updateWmBadge(); updateAppWinMenu(); updateDockDots(); }
+
+  // ---------------------------------------------------------- window
+  function focusRec(rec) {
+    if (!rec) return;
+    if (!rec.spec.root) rec.win.style.zIndex = ++z;
+    openWins.forEach((r) => r.win.classList.toggle('active', r === rec));
+    focused = rec;
+    if (rec.spec.isTerminal) activeTerminal = rec;
+    updateAppWinMenu();
+  }
+
+  function minimizeRec(rec) {
+    rec.win.classList.add('minimizing');
+    setTimeout(() => {
+      rec.win.classList.remove('minimizing');
+      rec.win.classList.add('minimized');
+      if (focused === rec) { focused = openWins.filter((r) => !r.win.classList.contains('minimized')).pop() || null; if (focused) focusRec(focused); }
+      refreshChrome();
+    }, 210);
+  }
+  function restoreRec(rec) {
+    rec.win.classList.remove('minimized', 'minimizing');
+    focusRec(rec);
+    refreshChrome();
+  }
+
+  function makeWindow(spec, contentNode) {
+    const id = 'w' + (++z);
+    const win = document.createElement('section');
+    win.className = 'win' + (spec.root ? ' win-root' : '');
+    win.style.zIndex = spec.root ? 1 : ++z;
+    if (!spec.root) {
+      // Clamp size + cascade position so the window always fits the desktop
+      // (keeps the resize grip reachable).
+      const area = windowsEl().getBoundingClientRect();
+      const w = Math.min(spec.w || 560, Math.max(320, area.width - 24));
+      const h = Math.min(spec.h || 400, Math.max(180, area.height - 20));
+      win.style.width = w + 'px'; win.style.height = h + 'px';
+      win.style.left = Math.max(6, Math.min(70 + (openWins.length % 6) * 36, area.width - w - 12)) + 'px';
+      win.style.top = Math.max(30, Math.min(58 + (openWins.length % 6) * 32, area.height - h - 10)) + 'px';
+    }
+
+    const title = document.createElement('div');
+    title.className = 'win-title';
+    title.innerHTML =
+      `<span class="win-lights">` +
+      `<i class="lc lc-close${spec.root ? ' lc-off' : ''}" title="${spec.root ? 'Root console — cannot close' : 'Close'}"></i>` +
+      `<i class="lc lc-min" title="Minimise"></i><i class="lc lc-zoom" title="Zoom"></i></span>` +
+      `<span class="win-name">${spec.icon || ''} ${spec.title}</span>` +
+      (spec.procName ? `<span class="win-proc">pid ${spec.pid} · linux</span>` : '<span></span>');
+    const body = document.createElement('div');
+    body.className = 'win-body';
+    body.appendChild(contentNode);
+    win.append(title, body);
+    windowsEl().appendChild(win);
+
+    const rec = { id, win, spec, appName: spec.appName || null };
+    openWins.push(rec);
+
+    win.addEventListener('mousedown', () => focusRec(rec));
+    focusRec(rec);
+
+    if (!spec.root) {
+      // drag by title bar
+      title.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('lc')) return;
+        drag = { rec, x: e.clientX, y: e.clientY, l: win.offsetLeft, t: win.offsetTop };
+        e.preventDefault();
+      });
+      // resize grip
+      const grip = document.createElement('div');
+      grip.className = 'win-grip';
+      grip.title = 'Resize';
+      win.appendChild(grip);
+      grip.addEventListener('mousedown', (e) => {
+        resize = { rec, x: e.clientX, y: e.clientY, w: win.offsetWidth, h: win.offsetHeight };
+        e.preventDefault(); e.stopPropagation();
+      });
+    }
+    title.addEventListener('dblclick', (e) => { if (!e.target.classList.contains('lc')) win.classList.toggle('zoomed'); });
+
+    title.querySelector('.lc-close').onclick = () => { if (!spec.root) closeWin(rec); };
+    title.querySelector('.lc-min').onclick = () => minimizeRec(rec);
+    title.querySelector('.lc-zoom').onclick = () => win.classList.toggle('zoomed');
+
+    refreshChrome();
+    return rec;
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    if (drag) {
+      drag.rec.win.style.left = Math.max(0, drag.l + e.clientX - drag.x) + 'px';
+      drag.rec.win.style.top = Math.max(30, drag.t + e.clientY - drag.y) + 'px';
+    } else if (resize) {
+      resize.rec.win.style.width = Math.max(320, resize.w + e.clientX - resize.x) + 'px';
+      resize.rec.win.style.height = Math.max(180, resize.h + e.clientY - resize.y) + 'px';
+    }
+  });
+  window.addEventListener('mouseup', () => { drag = null; resize = null; });
+
+  function closeWin(rec) {
+    if (rec.spec.root) return;
+    if (rec.spec.onClose) try { rec.spec.onClose(); } catch (_) {}
+    rec.win.remove();
+    const i = openWins.indexOf(rec); if (i >= 0) openWins.splice(i, 1);
+    if (activeTerminal === rec) activeTerminal = openWins.filter((r) => r.spec.isTerminal).slice(-1)[0] || rootConsole;
+    if (focused === rec) { focused = null; focusRec(openWins.filter((r) => !r.win.classList.contains('minimized')).pop() || rootConsole); }
+    refreshChrome();
+  }
+
+  // ---------------------------------------------------------- kernel UI
+  function reflectKernel() {
+    const mode = Kernel.LIMAWEK.mode();
+    const p = Kernel.personalities[mode];
+    const badge = document.getElementById('mb-kernel');
+    if (badge) badge.textContent = (mode === 'dos' ? '◆ dos·real-mode' : '◆ arch·' + p.version.split('-')[0]);
+    document.body.classList.toggle('kernel-dos', mode === 'dos');
+    document.body.classList.toggle('kernel-linux', mode !== 'dos');
+  }
+
+  // ---------------------------------------------------------- API for apps/shell
+  const api = {
+    fallback: () => fallbackAllowed,
+    setFallback(v) {
+      fallbackAllowed = !!v;
+      document.body.classList.toggle('fallback-on', fallbackAllowed);
+      store.set('fallback', fallbackAllowed ? 'on' : 'off');
+      const badge = document.getElementById('mb-fallback');
+      if (badge) badge.textContent = 'GUI: ' + (fallbackAllowed ? 'rich' : 'shell');
+    },
+    setDosMode(v) {
+      dosMode = !!v;
+      document.body.classList.toggle('dosmode', dosMode);
+      reflectKernel();
+    },
+    setWallpaper(name) {
+      if (!WALLPAPERS.includes(name)) return false;
+      WALLPAPERS.forEach((w) => document.body.classList.remove('wp-' + w));
+      wallpaper = name;
+      document.body.classList.add('wp-' + name);
+      store.set('wallpaper', name);
+      return true;
+    },
+    wallpaper: () => wallpaper,
+    wallpapers: () => WALLPAPERS.slice(),
+    cycleWallpaper(name) {
+      if (name && api.setWallpaper(name)) return wallpaper;
+      const i = (WALLPAPERS.indexOf(wallpaper) + 1) % WALLPAPERS.length;
+      api.setWallpaper(WALLPAPERS[i]);
+      return wallpaper;
+    },
+    setMotion(on) {
+      document.documentElement.classList.toggle('no-motion', !on);
+      store.set('motion', on ? 'on' : 'off');
+    },
+    motion: () => !document.documentElement.classList.contains('no-motion'),
+    closeActiveTerminal() {
+      if (activeTerminal && !activeTerminal.spec.root) closeWin(activeTerminal);
+      else if (activeTerminal && activeTerminal.shell) activeTerminal.shell.ctx.print('limesh: the root console stays — BlockWM needs a window.', 'dim');
+    },
+
+    openApp(name, meta = {}) {
+      name = String(name || '').toLowerCase();
+      if (name === 'terminal' || name === 'shell' || name === 'limesh') {
+        const mount = document.createElement('div');
+        const rec = makeWindow({ title: 'limesh — Terminal ' + (++termCount), icon: '▤', w: 680, h: 440, isTerminal: true, appName: 'terminal' }, mount);
+        rec.shell = Shell.create(mount, api);
+        activeTerminal = rec;
+        return rec;
+      }
+      const spec = Apps.create(name, api, meta);
+      if (!spec) return false;
+      spec.isTerminal = false;
+      spec.appName = name;
+      if (meta.procName) { spec.procName = meta.procName; spec.pid = meta.pid; spec.title = meta.procName + ' — ' + spec.title; }
+      return makeWindow(spec, spec.node);
+    },
+
+    bootConsole() {
+      const mount = document.createElement('div');
+      rootConsole = makeWindow({ title: 'limesh — console (root)', icon: '▤', root: true, isTerminal: true, appName: 'terminal' }, mount);
+      rootConsole.shell = Shell.create(mount, api);
+      activeTerminal = rootConsole;
+      return rootConsole;
+    },
+  };
+
+  // ---------------------------------------------------------- menus
+  // item: [label, fn, shortcut?]  |  '-'  |  fn === null → disabled
+  const MENUS = {
+    apple: () => [
+      ['About This System', () => api.openApp('about')],
+      ['System Preferences…', () => api.openApp('settings')],
+      '-',
+      ['Kernel & LIMAWEK', () => runInTerminal('kernel')],
+      ['App Store (browser)', () => api.openApp('browser')],
+      '-',
+      ['Restart', () => location.reload()],
+      ['Shut Down…', () => document.body.classList.add('poweroff')],
+    ],
+    file: () => [
+      ['New Terminal', () => api.openApp('terminal'), '⌃⌥T'],
+      ['New Editor', () => api.openApp('editor')],
+      ['Open Files', () => api.openApp('files')],
+      '-',
+      ['Close Window', () => { const top = openWins.filter((r) => !r.spec.root).pop(); if (top) closeWin(top); }, '⌘W'],
+    ],
+    edit: () => [['Undo', null, '⌘Z'], ['Redo', null, '⇧⌘Z'], '-', ['Cut', null, '⌘X'], ['Copy', null, '⌘C'], ['Paste', null, '⌘V']],
+    view: () => [
+      ['Toggle Theme', () => toggleTheme()],
+      ['Next Wallpaper', () => api.cycleWallpaper()],
+      '-',
+      ['Fallback-GUI: allow', () => api.setFallback(true)],
+      ['Fallback-GUI: disable', () => api.setFallback(false)],
+    ],
+    special: () => [
+      ['Kernel → DOS real-mode', () => runInTerminal('limawek mode dos')],
+      ['Kernel → Linux (Arch)', () => runInTerminal('limawek mode linux')],
+      ['Immersive MS-DOS', () => runInTerminal('dos')],
+      '-',
+      ['neofetch', () => runInTerminal('neofetch')],
+      ['matrix', () => runInTerminal('matrix')],
+      ['Empty Trash', () => runInTerminal('echo trash: already empty — BLOCK wastes nothing.')],
+    ],
+    apps: () => LAUNCHERS.map(([app, icon, label]) => [icon + ' ' + label, () => api.openApp(app)]),
+    windows: () => openWins.map((rec) => [
+      (rec === focused ? '✓ ' : rec.win.classList.contains('minimized') ? '◇ ' : '   ') +
+        (rec.spec.icon || '▢') + ' ' + rec.spec.title,
+      () => restoreRec(rec),
+    ]),
+  };
+
+  function toggleTheme() {
+    const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+    store.set('theme', t);
+  }
+
+  function runInTerminal(line) {
+    let rec = activeTerminal || rootConsole;
+    if (!rec) rec = api.openApp('terminal');
+    if (rec.win.classList.contains('minimized')) restoreRec(rec);
+    setTimeout(() => rec.shell && rec.shell.execute(line), 20);
+  }
+
+  function openMenu(key, anchor) {
+    const build = MENUS[key];
+    if (!build) return;
+    const drop = menuDrop();
+    drop.innerHTML = '';
+    for (const item of build()) {
+      if (item === '-') { drop.appendChild(document.createElement('hr')); continue; }
+      const [label, fn, shortcut] = item;
+      const b = document.createElement('button');
+      b.className = 'menu-item' + (fn ? '' : ' disabled');
+      b.innerHTML = `<span></span><span class="ms">${shortcut || ''}</span>`;
+      b.firstChild.textContent = label;
+      if (fn) b.onclick = () => { closeMenus(); fn(); };
+      drop.appendChild(b);
+    }
+    const r = anchor.getBoundingClientRect();
+    drop.style.top = (r.bottom + 3) + 'px';
+    drop.style.left = Math.min(r.left, window.innerWidth - 250) + 'px';
+    drop.hidden = false;
+    drop.dataset.open = key;
+  }
+  function closeMenus() {
+    const d = menuDrop(); d.hidden = true; d.dataset.open = '';
+    document.querySelectorAll('.mb-item.on').forEach((b) => b.classList.remove('on'));
+  }
+
+  function wireMenuBar() {
+    document.querySelectorAll('.mb-item[data-menu]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const key = btn.dataset.menu;
+        if (menuDrop().dataset.open === key) { closeMenus(); return; }
+        closeMenus(); btn.classList.add('on'); openMenu(key, btn);
+      });
+      btn.addEventListener('mouseenter', () => {
+        if (menuDrop().hidden) return;
+        closeMenus(); btn.classList.add('on'); openMenu(btn.dataset.menu, btn);
+      });
+    });
+    document.addEventListener('click', closeMenus);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenus();
+      if (e.ctrlKey && e.altKey && (e.key === 't' || e.key === 'T')) { e.preventDefault(); api.openApp('terminal'); }
+    });
+  }
+
+  // ---------------------------------------------------------- dock & icons
+  function buildDock() {
+    const dock = dockEl();
+    dock.innerHTML = '';
+    for (const [app, icon, label] of LAUNCHERS) {
+      const btn = document.createElement('button');
+      btn.className = 'dock-btn';
+      btn.dataset.app = app;
+      btn.innerHTML = `<span>${icon}</span><small>${label}</small><i class="dot"></i>`;
+      btn.title = label;
+      btn.onclick = () => {
+        const recs = openWins.filter((r) => r.appName === app);
+        if (!recs.length) return api.openApp(app);
+        restoreRec(recs[recs.length - 1]);
+      };
+      dock.appendChild(btn);
+    }
+  }
+
+  function buildDesktopIcons() {
+    const host = document.getElementById('desktop-icons');
+    if (!host) return;
+    host.innerHTML = '';
+    const ICONS = [
+      ['💾', 'BlockFS', () => api.openApp('files', { path: '/' })],
+      ['🏠', 'Home', () => api.openApp('files', { path: '/home/lime' })],
+      ['🗑️', 'Trash', () => runInTerminal('echo trash: empty. BLOCK wastes nothing.')],
+    ];
+    for (const [icon, label, fn] of ICONS) {
+      const d = document.createElement('div');
+      d.className = 'dicon';
+      d.innerHTML = `<i>${icon}</i><small>${label}</small>`;
+      d.addEventListener('click', () => { host.querySelectorAll('.dicon').forEach((x) => x.classList.remove('sel')); d.classList.add('sel'); });
+      d.addEventListener('dblclick', fn);
+      host.appendChild(d);
+    }
+  }
+
+  function startClock() {
+    const c = document.getElementById('mb-clock');
+    const tick = () => {
+      const d = new Date();
+      c.textContent = d.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' +
+        d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    };
+    tick(); setInterval(tick, 1000 * 15);
+  }
+
+  function init() {
+    api.setWallpaper(store.get('wallpaper') || 'lime');
+    api.setFallback(store.get('fallback') === 'on');
+    wireMenuBar();
+    buildDock();
+    buildDesktopIcons();
+    startClock();
+    Kernel.LIMAWEK.onChange(reflectKernel);
+    reflectKernel();
+    api.bootConsole();
+    refreshChrome();
+  }
+
+  return { init, api, openApp: (n, m) => api.openApp(n, m), root: () => rootConsole };
+})();
+window.GUI = GUI;
+
+</script>
+  <script>
+/*
+ * LIMEdit BLOCK — boot.js
+ * A two-phase power-on sequence:
+ *   1. BIOS POST + real-mode DOS handoff (black, scrolling text)
+ *   2. A Mac-OS-9-style "Welcome" splash — progress bar and an extension
+ *      parade — while the Arch personality and BlockWM come up.
+ * Then the desktop, which is really just the always-on root console.
+ */
+'use strict';
+
+(function () {
+  const POST = [
+    'LIMEdit BLOCK BIOS v1.1  —  Power-On Self Test',
+    'CPU: Citrus C9 @ 3.60GHz (8 cores) ......... OK',
+    'HIMEM: Testing extended memory ............. 16384K OK',
+    '',
+    'Starting MS-DOS real-mode personality...',
+    '  COMMAND.COM loaded (microsoft/MS-DOS compat, MIT)',
+    '  8.3 filesystem, drive C: mounted',
+    '',
+    'Handing off to the hybrid kernel: archdos-hybrid 1.0',
+    '  [ ok ] LIMAWEK — kernel arbiter — online',
+    '  [ ok ] loading Linux (Arch) personality: linux 6.14.2-arch1',
+  ];
+  const EXT = ['🧩', '⌨️', '🖥️', '📦', '🌐', '🐧', '💾', '🍋'];
+
+  const boot = document.getElementById('boot');
+  const logEl = document.getElementById('boot-log');
+  const splash = document.getElementById('boot-splash');
+  const barFill = document.getElementById('boot-bar-fill');
+  const extRow = document.getElementById('splash-ext');
+  const desktop = document.getElementById('desktop');
+
+  let li = 0, ei = 0, skipped = false;
+
+  function postLine() {
+    if (skipped) return;
+    if (li < POST.length) {
+      logEl.textContent += POST[li++] + '\n';
+      setTimeout(postLine, 55 + Math.random() * 65);
+    } else {
+      setTimeout(splashPhase, 260);
+    }
+  }
+
+  function splashPhase() {
+    if (skipped) return;
+    logEl.hidden = true;
+    splash.hidden = false;
+    extStep();
+  }
+
+  function extStep() {
+    if (skipped) return;
+    if (ei < EXT.length) {
+      const s = document.createElement('span');
+      s.textContent = EXT[ei++];
+      extRow.appendChild(s);
+      barFill.style.width = Math.round((ei / EXT.length) * 100) + '%';
+      setTimeout(extStep, 130);
+    } else {
+      setTimeout(finish, 420);
+    }
+  }
+
+  function finish() {
+    if (desktop.hidden === false) return;      // already up
+    boot.classList.add('done');
+    desktop.hidden = false;
+    GUI.init();                                // boots the always-on root console
+    const root = GUI.root();
+    // The hybrid comes up in DOS real-mode: show the DOS banner, then flex.
+    setTimeout(() => {
+      if (!root || !root.shell) return;
+      root.shell.execute('ver');
+      root.shell.execute('neofetch');
+    }, 220);
+    setTimeout(() => { boot.hidden = true; }, 480);
+  }
+
+  function skip() { if (!skipped) { skipped = true; finish(); } }
+  boot.addEventListener('click', skip);
+  window.addEventListener('keydown', function once() { skip(); window.removeEventListener('keydown', once); });
+  // Works both as a standalone page and embedded in an already-loaded document.
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', () => setTimeout(postLine, 250));
+  else setTimeout(postLine, 250);
+})();
+
+</script>
+</body>
+</html>

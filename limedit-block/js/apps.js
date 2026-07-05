@@ -26,6 +26,15 @@ const Apps = (() => {
           <a href="#" data-go="dos://prompt">DOS prompt lore ▸</a>
           <a href="#" data-go="block://apps">Get apps ▸</a>
         </div>
+        <h2 class="pg-h2">🌍 Real internet</h2>
+        <p class="pg-dim">Type any address or search words in the bar above — this
+        browser loads the actual web. Some sites refuse to be embedded; use the
+        ↗ button to pop them out.</p>
+        <div class="pg-links">
+          <a href="#" data-go="https://example.com">example.com ▸</a>
+          <a href="#" data-go="https://en.wikipedia.org/wiki/MS-DOS">wikipedia: MS-DOS ▸</a>
+          <a href="#" data-go="https://archlinux.org">archlinux.org ▸</a>
+        </div>
       </div>`,
     'arch://wiki': () => `
       <h1>BLOCK Wiki — pacman</h1>
@@ -58,9 +67,14 @@ C:\\HOME\\LIME&gt; CLS</pre>
       </ul>
       <a href="#" data-go="lime://welcome">◂ home</a>`,
   };
-  function searchPage(q) {
-    return `<h1>Results for “${q}”</h1><p class="pg-dim">BLOCK search is offline-only; here are built-in pages:</p>
-      <ul class="pg-apps">${Object.keys(SITES).map((u) => `<li><a href="#" data-go="${u}">${u}</a></li>`).join('')}</ul>`;
+  const INTERNAL = /^(lime|arch|dos|block):\/\//;
+  function litePage() {
+    return `<h1>Real-web browsing needs the detailed GUI</h1>
+      <p>The lightweight, shell-first browser only renders BLOCK's built-in pages.
+      Loading the <b>actual internet</b> is a rich-chrome feature.</p>
+      <pre>fallback-gui ~allow</pre>
+      <p>Run that in the console, close this window, and reopen the browser.</p>
+      <p><a href="#" data-go="lime://welcome">◂ home</a></p>`;
   }
 
   function browser(gui, meta = {}) {
@@ -95,14 +109,41 @@ C:\\HOME\\LIME&gt; CLS</pre>
 
     const start = meta.url || 'lime://welcome';
     const hist = [start]; let hi = 0;
+
+    // A real web page: an <iframe> onto the actual internet, with an info bar
+    // and a pop-out button for sites that refuse to be embedded.
+    function renderWeb(url) {
+      page.innerHTML = '';
+      page.classList.add('br-webpage');
+      const info = el('div', 'br-info',
+        `<span>🌍 real internet — if the page stays blank, the site refuses embedding</span>`);
+      const pop = el('a', 'br-pop', 'open ↗');
+      pop.href = url; pop.target = '_blank'; pop.rel = 'noopener noreferrer';
+      info.appendChild(pop);
+      const frame = document.createElement('iframe');
+      frame.className = 'br-frame';
+      frame.src = url;
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+      frame.referrerPolicy = 'no-referrer';
+      page.append(info, frame);
+    }
+
     function render(url) {
       addr.value = url;
+      page.classList.remove('br-webpage');
       const fn = SITES[url];
-      page.innerHTML = fn ? fn() : searchPage(url);
+      if (fn) page.innerHTML = fn();
+      else if (!rich) page.innerHTML = litePage();
+      else return renderWeb(url);
       page.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); navigate(a.dataset.go); }));
     }
     function navigate(url) {
-      if (!/:\/\//.test(url)) url = SITES['lime://' + url] ? 'lime://' + url : url;
+      url = url.trim();
+      if (!INTERNAL.test(url) && !/^https?:\/\//i.test(url)) {
+        if (SITES['lime://' + url]) url = 'lime://' + url;                       // bare internal name
+        else if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(url)) url = 'https://' + url; // bare domain
+        else url = 'https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(url); // search
+      }
       hist.splice(hi + 1); hist.push(url); hi = hist.length - 1; render(url);
     }
     back.onclick = () => { if (hi > 0) render(hist[--hi]); };

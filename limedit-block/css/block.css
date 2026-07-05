@@ -243,13 +243,18 @@ body.poweroff .desktop { filter: brightness(0.04) saturate(0); transition: filte
 
 /* ============================ TERMINAL ============================ */
 .term {
-  background: var(--term-bg); color: var(--term-ink);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  background: var(--term-solid); color: var(--term-ink);
   font-family: var(--mono); font-size: 13px; line-height: 1.52;
   padding: 12px 14px; height: 100%; overflow: auto; cursor: text;
 }
-.win:not(.win-root) .term { background: var(--term-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
-.win-root .term { padding-right: 118px; }        /* lane for desktop icons */
+/* The root console IS the desktop, and it looks like DOS: near-black screen,
+   light-gray text. The wallpaper only tints it faintly through the alpha. */
+.win-root .term {
+  background: rgba(0, 0, 0, 0.93);
+  color: #c9c9c9;
+  padding-right: 118px;                          /* lane for desktop icons */
+}
+.win-root .term-input { color: #e6e6e6; }
 .term-line { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; }
 .term-echo { color: #eaf2fb; }
 .term-prompt { font-weight: 600; }
@@ -265,9 +270,9 @@ body.poweroff .desktop { filter: brightness(0.04) saturate(0); transition: filte
 .term-line .fileo { color: var(--term-ink); }
 .term-line mark { background: rgba(126, 211, 33, 0.35); color: inherit; }
 
-/* ---- the MS-DOS look: kernel in real-mode → console goes CGA ---- */
-body.kernel-dos .win-root .term { background: #000; color: #c9c9c9; -webkit-backdrop-filter: none; backdrop-filter: none; transition: background 0.25s, color 0.25s; }
-body.kernel-dos .win-root .term-input { color: #c9c9c9; caret-color: #c9c9c9; }
+/* ---- kernel in real-mode: fully opaque black + gray caret ---- */
+body.kernel-dos .win-root .term { background: #000; transition: background 0.25s; }
+body.kernel-dos .win-root .term-input { caret-color: #c9c9c9; }
 body.kernel-dos .win-root .term-echo { color: #eaeaea; }
 
 /* ---- immersive DOS (`dos`): full CRT — chrome recedes ---- */
@@ -333,6 +338,18 @@ body.kernel-dos .mb-kernel { color: #b9821f; }
 .pg-links a { padding: 8px 16px; border: 1px solid var(--lime); border-radius: 10px; }
 .pg-apps { line-height: 2; }
 .pg-dim { color: var(--ink-dim); }
+.pg-h2 { margin: 26px 0 4px; font-size: 18px; }
+
+/* real-internet view */
+.br-page.br-webpage { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.br-info {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 5px 12px; font-size: 11.5px; color: var(--ink-dim);
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.br-pop { color: var(--lime-deep); font-weight: 700; text-decoration: none; white-space: nowrap; }
+:root[data-theme="dark"] .br-pop { color: var(--lime); }
+.br-frame { flex: 1; width: 100%; border: 0; background: #fff; }
 
 /* ============================ FILES ============================ */
 .files { display: flex; flex-direction: column; height: 100%; background: var(--panel-2); color: var(--ink); }

@@ -28,8 +28,20 @@ node limedit-block/server.js       # → http://localhost:4000  (dependency-free
 # or just open limedit-block/index.html — it's 100% client-side
 ```
 
+**Internet-distributable version:** `node limedit-block/build-single.js` emits
+`limedit-block/dist/limedit-block.html` — the entire OS inlined into ONE file.
+Double-click it, e-mail it, or drop it on any static host (GitHub Pages,
+Netlify Drop) to put BLOCK on the internet.
+
 Boot is two-phase: a BIOS POST + real-mode DOS handoff, then a Mac-OS-9-style
 **Welcome splash** with an extension parade. Click or press any key to skip.
+
+**It boots looking like DOS.** The hybrid kernel comes up in the MS-DOS
+real-mode personality: a black console, the `MS-DOS Version 6.22-compat`
+banner, and a `C:\HOME\LIME>` prompt under the System-9 menu bar. The root
+console keeps the black DOS look permanently — the Linux personality announces
+itself through the green `[lime@limebox ~]$` prompt and the menu-bar badge,
+not by repainting the screen.
 
 ## The hybrid kernel & LIMAWEK
 
@@ -87,13 +99,25 @@ System 9.2.2 **Platinum**, modernised:
 - **Persistence** — theme, wallpaper, fallback-GUI, and reduced-motion survive
   reboots (localStorage).
 
-### Fallback-GUI
+### The internet
 
-Graphical apps need richer chrome than the shell:
+The BLOCK Browser reaches the **real web**: type any address or search words in
+the bar (searches go to DuckDuckGo Lite) and the page loads in an embedded
+frame, with a pop-out button for sites that refuse embedding. From the shell:
 
 ```
-fallback-gui ~allow      # full, detailed app chrome (browser grows a bookmarks bar)
-fallback-gui ~disable    # lightweight, shell-first windows
+curl example.com               # real fetch — HTTP status + body in the console
+open browser                   # then type wikipedia.org, archlinux.org, …
+```
+
+### Fallback-GUI
+
+Graphical apps need richer chrome than the shell — and real-web browsing is a
+rich-chrome feature:
+
+```
+fallback-gui ~allow      # full, detailed chrome: bookmarks bar + real internet
+fallback-gui ~disable    # lightweight, shell-first windows (built-in pages only)
 ```
 
 ## The shell (`limesh`)

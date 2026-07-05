@@ -112,17 +112,28 @@ const Commands = (() => {
     'MS-DOS verbs (→ real-mode)': ['dir', 'cls', 'type', 'copy', 'del', 'ren', 'ver', 'mem', 'md', 'rd', 'chdir', 'time', 'prompt', 'path'],
     'PowerShell': ['get-childitem', 'get-content', 'set-location', 'get-location', 'write-host', 'get-process', 'get-date', 'get-command', 'get-help', 'clear-host', 'new-item', 'remove-item', '$psversiontable'],
     'Package manager (pacman)': ['pacman', 'apt'],
-    'GUI & apps': ['apps', 'open', 'gui', 'fallback-gui', 'browser', 'theme', 'wallpaper'],
+    'Internet': ['browser', 'curl', 'wget', 'ping'],
+    'GUI & apps': ['apps', 'open', 'gui', 'fallback-gui', 'theme', 'wallpaper'],
     'Fun': ['neofetch', 'cowsay', 'fortune', 'ascii', 'figlet', 'matrix', 'sl', 'lolcat', 'coffee', 'sudo'],
     'Power user': ['code', 'js', 'reboot', 'shutdown', 'exit'],
   };
 
   // ---- which kernel personality each command's ABI needs --------------
-  // DOS verbs pull the hybrid kernel into real-mode; everything else runs on
-  // the Linux (Arch) personality. LIMAWEK reads this to arbitrate.
+  // DOS verbs pull the hybrid kernel into real-mode; Linux userland pulls it
+  // to the Arch personality. HYBRID commands are surface tools (help, fun,
+  // kernel introspection, GUI control) serviced by the hybrid layer itself —
+  // they never flip the kernel, so the DOS look survives a `help` or a
+  // `neofetch`. LIMAWEK reads this to arbitrate.
   const DOS_ABI = new Set(['dir', 'cls', 'type', 'copy', 'del', 'erase', 'ren', 'rename',
     'ver', 'mem', 'md', 'rd', 'rmdir', 'chdir', 'time', 'prompt', 'path', 'format']);
-  const abiOf = (name) => (DOS_ABI.has(name) ? 'dos' : 'linux');
+  const HYBRID_ABI = new Set(['help', 'man', 'get-help', 'get-command', 'commands',
+    'neofetch', 'cowsay', 'fortune', 'ascii', 'figlet', 'banner', 'lolcat', 'matrix',
+    'sl', 'coffee', 'sudo', 'kernel', 'lsmod', 'limawek', 'lima', 'dos', 'command.com',
+    'code', 'js', 'eval', 'open', 'start', 'gui', 'browser', 'block-browser', 'firefox',
+    'apps', 'launchpad', 'fallback-gui', 'fallbackgui', 'theme', 'wallpaper', 'edit',
+    'htop', 'top', 'history', 'alias', 'exit', 'logout', 'quit', 'reboot', 'shutdown',
+    'restart-computer', 'stop-computer', 'poweroff']);
+  const abiOf = (name) => (DOS_ABI.has(name) ? 'dos' : HYBRID_ABI.has(name) ? null : 'linux');
 
   // ====================================================================
   //  Command table
@@ -312,6 +323,25 @@ const Commands = (() => {
     for (let i = 1; i <= 4; i++) { const ms = +(8 + Math.random() * 20).toFixed(1); total += ms; ctx.print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + ms + ' ms'); }
     ctx.print('\n--- ' + host + ' ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss, avg ' + (total / 4).toFixed(1) + ' ms');
   });
+  def(['curl', 'wget', 'invoke-webrequest', 'iwr'], 'Fetch a real URL from the internet.', (ctx, a) => {
+    let url = a.find((x) => !x.startsWith('-'));
+    if (!url) return ctx.print('usage: curl <url>', 'err');
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    ctx.print('curl: fetching ' + url + ' …', 'dim');
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    fetch(url, { signal: ctl.signal }).then(async (res) => {
+      clearTimeout(t);
+      ctx.print('HTTP ' + res.status + ' ' + res.statusText + '   ' + (res.headers.get('content-type') || ''), 'accent');
+      const text = await res.text();
+      ctx.print(text.length > 2000 ? text.slice(0, 2000) + '\n… [' + text.length + ' bytes total, truncated]' : text);
+    }).catch((e) => {
+      clearTimeout(t);
+      ctx.print('curl: ' + (e.name === 'AbortError' ? 'timed out' : e.message), 'err');
+      ctx.print('  (many sites block cross-origin fetches — try `open browser` and load it there)', 'dim');
+    });
+  }, { usage: 'curl <url>     e.g.  curl example.com' });
+
   def(['htop', 'top'], 'Open the process viewer (Activity Monitor).', (ctx) => {
     ctx.gui.openApp('monitor');
     ctx.print('htop: opened Activity Monitor (BlockWM window).', 'dim');

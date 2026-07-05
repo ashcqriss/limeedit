@@ -64,7 +64,9 @@ const Kernel = (() => {
   };
 
   // ------------------------------------------------------------ LIMAWEK
-  let currentMode = 'linux';     // the hybrid boots on the Arch personality
+  // Like the hardware it honours, the hybrid boots in DOS real-mode; the
+  // first Linux-ABI workload makes LIMAWEK bring the Arch kernel up.
+  let currentMode = 'dos';
   let locked = false;            // `dos` immersive mode locks the arbiter
   const klog = [];               // kernel transition log
   const listeners = [];
@@ -125,7 +127,7 @@ const Kernel = (() => {
         'KERNEL="archdos-hybrid"\nHOME_URL="lime://welcome"\n'),
       'motd': file('LIMEdit BLOCK — the GUI is the terminal.\n' +
                    'A hybrid kernel: LIMAWEK arbitrates DOS real-mode ⇄ Linux (Arch).\n' +
-                   'Type `help`, `neofetch`, `kernel` — pipes work too:  help | grep dos\n'),
+                   'Type `help` or `kernel` — `open browser` reaches the real internet.\n'),
     }),
     usr: dir({ bin: dir(), lib: dir({ modules: dir() }), share: dir({ doc: dir() }) }),
     var: dir({ log: dir({ 'kern.log': file('archdos: hybrid kernel online\n') }) }),
