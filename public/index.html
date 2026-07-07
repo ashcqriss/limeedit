@@ -7,11 +7,13 @@
   <script>
     // Apply saved theme + motion preference before first paint (no flash).
     // data-theme is the light/dark base; data-app-theme is the specific theme
-    // (e.g. a Zed "One" theme) whose chrome overrides layer on top.
+    // (e.g. a Zed "One" theme) whose chrome overrides layer on top; data-glass
+    // turns on the Liquid Glass chrome (app.js re-applies it from the registry).
     (function () {
-      var id = localStorage.getItem('limeedit.theme') || 'light';
+      var id = localStorage.getItem('limeedit.theme') || 'edemint-glass-light';
       document.documentElement.dataset.theme = id.indexOf('dark') !== -1 ? 'dark' : 'light';
       document.documentElement.dataset.appTheme = id;
+      if (id.indexOf('glass') !== -1) document.documentElement.setAttribute('data-glass', '');
     })();
     if (localStorage.getItem('limeedit.animations') === 'false') {
       document.documentElement.classList.add('no-motion');

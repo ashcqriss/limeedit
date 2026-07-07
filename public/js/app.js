@@ -186,13 +186,64 @@ monaco.editor.defineTheme('bbedit-glass-dark', {
   },
 });
 
+// Edemint Liquid Glass — the blue-led Edemint palette (docs/palette.md) on a
+// flat, pure-white or pure-black editor surface. Syntax leads with the L1
+// families (ultramarine C1, azure C8a), anchored by navy (C6) and plant green
+// (C4), with turquoise (C7) and eco green (C3) as supporting accents. The
+// caret is azure, like the glass chrome's cool accent.
+monaco.editor.defineTheme('edemint-glass-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '79808c', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '2001ff' },
+    { token: 'string', foreground: '0d6300' },
+    { token: 'number', foreground: '007c76' },
+    { token: 'type', foreground: '002c89' },
+    { token: 'operator', foreground: '0080ff' },
+    { token: 'delimiter', foreground: '5a5e68' },
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#16181d',
+    'editor.lineHighlightBackground': '#2001ff08',
+    'editorLineNumber.foreground': '#b6bac4',
+    'editorCursor.foreground': '#0080ff',
+    'editor.selectionBackground': '#2001ff26',
+    'editor.findMatchHighlightBackground': '#1ee5ce4d',
+  },
+});
+
+monaco.editor.defineTheme('edemint-glass-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '6d58ff' },
+    { token: 'string', foreground: '45e289' },
+    { token: 'number', foreground: '1ee5ce' },
+    { token: 'type', foreground: '74fbea' },
+    { token: 'operator', foreground: '0080ff' },
+    { token: 'delimiter', foreground: '9aa0ac' },
+  ],
+  colors: {
+    'editor.background': '#000000',
+    'editor.foreground': '#e8eaf2',
+    'editor.lineHighlightBackground': '#6d58ff14',
+    'editorLineNumber.foreground': '#3c4048',
+    'editorCursor.foreground': '#0080ff',
+    'editor.selectionBackground': '#2001ff66',
+    'editor.findMatchHighlightBackground': '#04a89d59',
+  },
+});
+
 // ---------------------------------------------------------------- state
 
 const state = {
   docs: [], // { id, path, name, model, savedVersionId, viewState }
   activeId: null,
   untitledCounter: 0,
-  theme: localStorage.getItem('limeedit.theme') || 'bbedit-glass-light',
+  theme: localStorage.getItem('limeedit.theme') || 'edemint-glass-light',
   softWrap: localStorage.getItem('limeedit.softWrap') === 'true',
   animations: localStorage.getItem('limeedit.animations') !== 'false',
   showInvisibles: false,
@@ -217,10 +268,13 @@ function loadEnabledExtensions() {
 
 // Theme registry. `base` drives the light/dark chrome fallback (data-theme);
 // `id` drives the specific chrome overrides (data-app-theme); `monaco` is the
-// editor theme; `sibling` is what the Dark Mode toggle flips to.
+// editor theme; `sibling` is what the Dark Mode toggle flips to; `glass`
+// stamps data-glass on <html>, which turns on the Liquid Glass chrome.
 const THEMES = {
-  'bbedit-glass-light': { id: 'bbedit-glass-light', label: 'BBEdit Liquid Glass', base: 'light', monaco: 'bbedit-glass-light', sibling: 'bbedit-glass-dark' },
-  'bbedit-glass-dark': { id: 'bbedit-glass-dark', label: 'BBEdit Liquid Glass (Dark)', base: 'dark', monaco: 'bbedit-glass-dark', sibling: 'bbedit-glass-light' },
+  'edemint-glass-light': { id: 'edemint-glass-light', label: 'Edemint Liquid Glass', base: 'light', monaco: 'edemint-glass-light', sibling: 'edemint-glass-dark', glass: true },
+  'edemint-glass-dark': { id: 'edemint-glass-dark', label: 'Edemint Liquid Glass (Dark)', base: 'dark', monaco: 'edemint-glass-dark', sibling: 'edemint-glass-light', glass: true },
+  'bbedit-glass-light': { id: 'bbedit-glass-light', label: 'BBEdit Liquid Glass', base: 'light', monaco: 'bbedit-glass-light', sibling: 'bbedit-glass-dark', glass: true },
+  'bbedit-glass-dark': { id: 'bbedit-glass-dark', label: 'BBEdit Liquid Glass (Dark)', base: 'dark', monaco: 'bbedit-glass-dark', sibling: 'bbedit-glass-light', glass: true },
   light: { id: 'light', label: 'LimeEdit Light', base: 'light', monaco: 'lime-light', sibling: 'dark' },
   dark: { id: 'dark', label: 'LimeEdit Dark', base: 'dark', monaco: 'lime-dark', sibling: 'light' },
   zed: { id: 'zed', label: 'Zed', base: 'light', monaco: 'zed-flat-light', sibling: 'zed-dark' },
@@ -233,10 +287,16 @@ function themeFor(id) {
   return THEMES[id] || THEMES.light;
 }
 
+function applyThemeAttributes(t) {
+  document.documentElement.dataset.theme = t.base;
+  document.documentElement.dataset.appTheme = t.id;
+  if (t.glass) document.documentElement.setAttribute('data-glass', '');
+  else document.documentElement.removeAttribute('data-glass');
+}
+
 const $ = (id) => document.getElementById(id);
 
-document.documentElement.dataset.theme = themeFor(state.theme).base;
-document.documentElement.dataset.appTheme = themeFor(state.theme).id;
+applyThemeAttributes(themeFor(state.theme));
 document.documentElement.classList.toggle('no-motion', !state.animations);
 
 const editor = monaco.editor.create($('editor'), {
@@ -1769,8 +1829,7 @@ function applyTheme(id, { silent = false } = {}) {
   const t = themeFor(id);
   state.theme = t.id;
   localStorage.setItem('limeedit.theme', t.id);
-  document.documentElement.dataset.theme = t.base;
-  document.documentElement.dataset.appTheme = t.id;
+  applyThemeAttributes(t);
   monaco.editor.setTheme(t.monaco);
   if (!silent) rebuildMenus();
 }

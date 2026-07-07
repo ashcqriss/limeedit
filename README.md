@@ -11,15 +11,19 @@ source tree. BBEdit's ergonomics, VS Code's engine.
 
 *It still doesn't suck.®*
 
-The default look is **BBEdit Liquid Glass** — a clean, classic BBEdit palette
-with Apple-style frosted, translucent chrome floating over a soft wallpaper:
+The default look is **Edemint Liquid Glass** — the blue-led Edemint palette on
+Apple-style frosted, translucent chrome floating over a flat, pure white or
+pure black canvas (no wallpaper, no gradient), with macOS-style spring
+animations. The design brief lives in [docs/design.md](docs/design.md) and the
+palette in [docs/palette.md](docs/palette.md):
 
-![LimeEdit — BBEdit Liquid Glass, frosted Text menu over the editor](docs/screenshot-glass-menu.png)
+![LimeEdit — Edemint Liquid Glass, frosted Text menu over the editor](docs/screenshot-edemint-menu.png)
 
-![LimeEdit — BBEdit Liquid Glass, dark](docs/screenshot-glass-dark.png)
+![LimeEdit — Edemint Liquid Glass, dark on pure black](docs/screenshot-edemint-dark.png)
 
-Prefer something flatter? The [Color Theme picker](#themes) also ships the
-original LimeEdit light/dark and Zed's One themes.
+Prefer something else? The [Color Theme picker](#themes) also ships the
+wallpapered BBEdit Liquid Glass, the original LimeEdit light/dark, and Zed's
+themes.
 
 ## Quick start
 
@@ -64,8 +68,8 @@ npm start [path-to-workspace]     # defaults to the current directory
 | Open Quickly (fuzzy file search) | `⌘P` |
 | Soft-wrap toggle, Show Invisibles | View menu / navigation bar |
 | Line-ending (LF/CRLF), language mode & tab-width switchers | status bar |
-| BBEdit Liquid Glass theme (default), light & dark | View ▸ Color Theme… |
-| LimeEdit light/dark + Zed "One" themes | View ▸ Color Theme… (`⌘K ⌘T`) |
+| Edemint Liquid Glass theme (default), light & dark | View ▸ Color Theme… |
+| BBEdit Liquid Glass, LimeEdit light/dark + Zed themes | View ▸ Color Theme… (`⌘K ⌘T`) |
 | Smooth animations (editor + UI) | View ▸ Smooth Animations |
 | Extension system with an extension host | Extensions menu (`⇧⌘X`) |
 | Account / sign-in with Settings Sync | Account menu / avatar |
@@ -121,8 +125,9 @@ current theme's family (e.g. One Light ⇄ One Dark).
 
 | Theme | |
 | --- | --- |
-| **BBEdit Liquid Glass** (default) | Classic BBEdit palette + Apple-style frosted glass chrome |
-| **BBEdit Liquid Glass (Dark)** | The same, dark |
+| **Edemint Liquid Glass** (default) | Blue-led Edemint palette + liquid glass over a flat white canvas |
+| **Edemint Liquid Glass (Dark)** | The same, over pure black |
+| **BBEdit Liquid Glass** / (Dark) | Classic BBEdit palette + frosted glass over a soft wallpaper |
 | **Zed** / **Zed (Dark)** | Modern Zed's own look — flat, shadow-free, glossy blue accent + blue caret |
 | Zed — One Dark / One Light | Zed's earlier "One" palettes |
 | LimeEdit Light / Dark | The original flat lime chrome |
@@ -139,13 +144,27 @@ a **blue caret**. Panels are edged with a hairline border instead of a shadow.
 
 ### Liquid glass
 
-The default theme leans into Apple's "liquid glass" look. A soft, faintly
-colored wallpaper sits behind everything; the menu bar, sidebar, navigation and
-status bars, menus, dialogs, and panels are rendered as **frosted, translucent
-glass** (`backdrop-filter` blur + saturation) floating over it, edged with a
-bright specular highlight and softly rounded. The editor surface itself is
-lightly translucent, so the wallpaper reads faintly behind your code. It's
-tuned to stay clean and readable — BBEdit calm, not a screensaver.
+Both glass themes render the menu bar, sidebar, navigation and status bars,
+menus, dialogs, and panels as **frosted, translucent glass**
+(`backdrop-filter` blur + saturation) floating above the app, edged with a
+bright specular highlight, softly rounded, and animated with macOS-style
+springs.
+
+What sits behind the glass differs. **Edemint Liquid Glass** (the default)
+floats over a **flat, pure white or pure black canvas — deliberately no
+wallpaper and no gradient** — and leads with the Edemint palette: ultramarine
+selections, an azure caret, turquoise search matches, capsule controls, and
+red-on-hover ✕ controls per the Edemint window-control semantics (green =
+expand, yellow = hide, red = close). The full brief is in
+[docs/design.md](docs/design.md), the measured palette in
+[docs/palette.md](docs/palette.md), and the implementation state in
+[docs/design_implementation.md](docs/design_implementation.md).
+
+![Edemint Liquid Glass, light](docs/screenshot-edemint-light.png)
+
+**BBEdit Liquid Glass** keeps its soft, faintly colored wallpaper behind the
+frost and a lightly translucent editor surface — BBEdit calm, not a
+screensaver.
 
 ![BBEdit Liquid Glass, light](docs/screenshot-glass-light.png)
 
